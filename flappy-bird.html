@@ -383,6 +383,8 @@
         this.mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
         this.reducedMotion = this.mediaQuery.matches;
         this.resizeObserver = null;
+        this.audioContext = null;
+        this.audioEnabled = true;
 
         this.mode = "ready";
         this.bestScore = this.loadBestScore();
@@ -633,6 +635,8 @@
       }
 
       handlePrimaryAction() {
+        this.unlockAudio();
+
         if (this.mode === "ready") {
           this.ensureFullscreen();
           this.startRound();
@@ -674,6 +678,7 @@
         this.state.bird.wingPhase = 0;
         this.lastFrameTime = 0;
         this.accumulator = 0;
+        this.playStartSound();
         this.flap();
         this.updateHud();
         this.updateOverlayState();
@@ -694,6 +699,7 @@
         this.state.bird.rotation = -0.7;
         this.state.bird.wingPhase = 0;
         this.spawnFlapParticles();
+        this.playFlapSound();
       }
 
       pause() {
@@ -932,6 +938,7 @@
         this.state.shake = 0.16;
         this.state.bird.velocity = Math.max(this.state.bird.velocity, -60);
         this.updateOverlayState();
+        this.playCrashSound();
         this.announce(`Crash. ${this.state.score}.`);
       }
 
@@ -956,7 +963,105 @@
         this.pulseScoreChip();
         this.spawnScoreParticles();
         this.updateHud();
+        this.playScoreSound();
         this.announce(`Score ${this.state.score}.`);
+      }
+
+      unlockAudio() {
+        if (this.audioContext || !this.audioEnabled) {
+          if (this.audioContext && this.audioContext.state === "suspended") {
+            this.audioContext.resume().catch(() => {});
+          }
+          return;
+        }
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          this.audioEnabled = false;
+          return;
+        }
+
+        try {
+          this.audioContext = new AudioContextClass();
+          if (this.audioContext.state === "suspended") {
+            this.audioContext.resume().catch(() => {});
+          }
+        } catch (error) {
+          this.audioEnabled = false;
+        }
+      }
+
+      playTone({ frequency, frequencyEnd = frequency, type = "sine", duration = 0.12, gain = 0.03, when = 0 }) {
+        if (!this.audioContext || !this.audioEnabled) {
+          return;
+        }
+
+        const startTime = this.audioContext.currentTime + when;
+        const endTime = startTime + duration;
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, startTime);
+        oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, frequencyEnd), endTime);
+
+        gainNode.gain.setValueAtTime(0.0001, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(gain, startTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, endTime);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        oscillator.start(startTime);
+        oscillator.stop(endTime);
+      }
+
+      playFlapSound() {
+        this.playTone({
+          frequency: 520,
+          frequencyEnd: 340,
+          type: "triangle",
+          duration: 0.08,
+          gain: 0.028
+        });
+      }
+
+      playScoreSound() {
+        this.playTone({
+          frequency: 780,
+          frequencyEnd: 980,
+          type: "sine",
+          duration: 0.09,
+          gain: 0.03
+        });
+        this.playTone({
+          frequency: 980,
+          frequencyEnd: 1180,
+          type: "sine",
+          duration: 0.08,
+          gain: 0.018,
+          when: 0.05
+        });
+      }
+
+      playCrashSound() {
+        this.playTone({
+          frequency: 260,
+          frequencyEnd: 90,
+          type: "sawtooth",
+          duration: 0.22,
+          gain: 0.035
+        });
+      }
+
+      playStartSound() {
+        this.playTone({
+          frequency: 440,
+          frequencyEnd: 620,
+          type: "triangle",
+          duration: 0.07,
+          gain: 0.018
+        });
       }
 
       pulseScoreChip() {
