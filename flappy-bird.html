@@ -105,6 +105,128 @@
       animation: score-pulse 220ms ease;
     }
 
+    .hud-corner {
+      position: absolute;
+      top: calc(max(env(safe-area-inset-top), 0px) + 18px);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 10px 14px;
+      border: 1px solid rgba(18, 32, 51, 0.08);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.58);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--ink);
+      box-shadow: 0 14px 40px rgba(18, 32, 51, 0.06);
+    }
+
+    .hud-corner.is-left {
+      left: calc(max(env(safe-area-inset-left), 0px) + 18px);
+    }
+
+    .hud-corner.is-right {
+      right: calc(max(env(safe-area-inset-right), 0px) + 18px);
+      pointer-events: auto;
+    }
+
+    .boost-chip {
+      position: absolute;
+      left: calc(max(env(safe-area-inset-left), 0px) + 18px);
+      top: calc(max(env(safe-area-inset-top), 0px) + 68px);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(229, 177, 52, 0.18);
+      background: rgba(255, 248, 221, 0.8);
+      color: #8a5c10;
+      box-shadow: 0 14px 36px rgba(155, 112, 22, 0.08);
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      pointer-events: none;
+    }
+
+    .boost-chip.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .boost-chip strong,
+    .boost-chip span {
+      line-height: 1;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .boost-chip strong {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+    }
+
+    .boost-chip span {
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      color: rgba(138, 92, 16, 0.78);
+    }
+
+    .boost-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ffe27c 0%, #f6bd34 100%);
+      box-shadow: 0 0 0 4px rgba(246, 189, 52, 0.16);
+      flex: 0 0 auto;
+    }
+
+    .gem-dot {
+      width: 12px;
+      height: 12px;
+      background: linear-gradient(135deg, #4fe7ff 0%, #3db8ff 48%, #8c7dff 100%);
+      border-radius: 2px;
+      transform: rotate(45deg);
+      box-shadow: 0 0 0 3px rgba(79, 231, 255, 0.14);
+      flex: 0 0 auto;
+    }
+
+    .hud-value {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .hud-button {
+      appearance: none;
+      border: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      min-width: 100%;
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.74rem;
+      font-weight: 800;
+    }
+
+    .hud-button:focus-visible {
+      outline: 2px solid rgba(61, 184, 255, 0.52);
+      outline-offset: 4px;
+      border-radius: 999px;
+    }
+
     .overlay-copy {
       position: absolute;
       inset: 0;
@@ -122,6 +244,237 @@
     .overlay-copy.is-hidden {
       opacity: 0;
       transform: translateY(10px);
+    }
+
+    .run-summary {
+      display: none;
+      width: min(100%, 320px);
+      margin: 10px auto 0;
+      padding: 14px;
+      border-radius: 24px;
+      border: 1px solid rgba(18, 32, 51, 0.08);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 18px 52px rgba(18, 32, 51, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .run-summary.is-visible {
+      display: block;
+    }
+
+    .run-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .summary-stat {
+      padding: 10px 12px;
+      border-radius: 18px;
+      background: rgba(248, 251, 255, 0.88);
+      border: 1px solid rgba(18, 32, 51, 0.06);
+    }
+
+    .summary-stat-label,
+    .summary-stat-value {
+      display: block;
+      margin: 0;
+    }
+
+    .summary-stat-label {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+
+    .summary-stat-value {
+      margin-top: 6px;
+      font-family: "Aptos Display", "Trebuchet MS", "Segoe UI", sans-serif;
+      font-size: 1.2rem;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .shop-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding:
+        calc(max(env(safe-area-inset-top), 0px) + 24px)
+        20px
+        calc(max(env(safe-area-inset-bottom), 0px) + 24px);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 180ms ease;
+    }
+
+    .shop-overlay.is-visible {
+      pointer-events: auto;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .shop-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(234, 241, 246, 0.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .shop-panel {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 420px);
+      max-height: min(760px, calc(100dvh - 48px));
+      display: flex;
+      flex-direction: column;
+      padding: 18px;
+      border-radius: 28px;
+      border: 1px solid rgba(18, 32, 51, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 24px 80px rgba(18, 32, 51, 0.12);
+      pointer-events: auto;
+    }
+
+    .shop-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .shop-head-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .shop-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .shop-balance {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+
+    .shop-close {
+      appearance: none;
+      border: 0;
+      background: rgba(18, 32, 51, 0.06);
+      color: var(--ink);
+      min-width: 40px;
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      font: inherit;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+
+    .shop-close:focus-visible {
+      outline: 2px solid rgba(61, 184, 255, 0.52);
+      outline-offset: 3px;
+    }
+
+    .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-right: 4px;
+      min-height: 0;
+    }
+
+    .shop-grid::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .shop-grid::-webkit-scrollbar-thumb {
+      background: rgba(18, 32, 51, 0.16);
+      border-radius: 999px;
+    }
+
+    .swatch-card {
+      appearance: none;
+      width: 100%;
+      padding: 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(18, 32, 51, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      text-align: left;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .swatch-card:focus-visible {
+      outline: 2px solid rgba(61, 184, 255, 0.52);
+      outline-offset: 3px;
+    }
+
+    .swatch-card.is-selected {
+      border-color: rgba(18, 32, 51, 0.16);
+      box-shadow: inset 0 0 0 1px rgba(18, 32, 51, 0.12);
+    }
+
+    .swatch-card.is-locked {
+      opacity: 0.82;
+    }
+
+    .swatch-preview {
+      width: 100%;
+      height: 42px;
+      border-radius: 14px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(18, 32, 51, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    }
+
+    .swatch-name,
+    .swatch-price {
+      display: block;
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .swatch-name {
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .swatch-price {
+      margin-top: 4px;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
     }
 
     .overlay-label {
@@ -201,12 +554,54 @@
         top: calc(max(env(safe-area-inset-top), 0px) + 12px);
       }
 
+      .hud-corner {
+        top: calc(max(env(safe-area-inset-top), 0px) + 12px);
+        min-height: 38px;
+        padding: 8px 12px;
+      }
+
+      .hud-corner.is-left {
+        left: calc(max(env(safe-area-inset-left), 0px) + 12px);
+      }
+
+      .hud-corner.is-right {
+        right: calc(max(env(safe-area-inset-right), 0px) + 12px);
+      }
+
+      .boost-chip {
+        left: calc(max(env(safe-area-inset-left), 0px) + 12px);
+        top: calc(max(env(safe-area-inset-top), 0px) + 58px);
+      }
+
       .overlay-copy {
         padding: 18px;
       }
 
+      .run-summary {
+        width: min(100%, 300px);
+        padding: 12px;
+      }
+
       .overlay-label {
         letter-spacing: 0.22em;
+      }
+
+      .shop-panel {
+        width: min(100%, 380px);
+        max-height: min(700px, calc(100dvh - 40px));
+        padding: 16px;
+        border-radius: 24px;
+      }
+
+      .shop-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .shop-close {
+        min-width: 36px;
+        height: 36px;
+        padding: 0 12px;
+        font-size: 0.68rem;
       }
     }
 
@@ -222,6 +617,44 @@
       .hud-score {
         top: calc(max(env(safe-area-inset-top), 0px) + 10px);
         gap: 2px;
+      }
+
+      .hud-corner {
+        top: calc(max(env(safe-area-inset-top), 0px) + 10px);
+        min-height: 34px;
+        padding: 7px 10px;
+        gap: 7px;
+      }
+
+      .hud-corner.is-left {
+        left: calc(max(env(safe-area-inset-left), 0px) + 10px);
+      }
+
+      .hud-corner.is-right {
+        right: calc(max(env(safe-area-inset-right), 0px) + 10px);
+      }
+
+      .boost-chip {
+        left: calc(max(env(safe-area-inset-left), 0px) + 10px);
+        top: calc(max(env(safe-area-inset-top), 0px) + 50px);
+        min-height: 32px;
+        padding: 7px 10px;
+        gap: 7px;
+      }
+
+      .boost-chip strong {
+        font-size: 0.64rem;
+        letter-spacing: 0.11em;
+      }
+
+      .boost-chip span {
+        font-size: 0.61rem;
+      }
+
+      .hud-value,
+      .hud-button {
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
       }
 
       .hud-score strong {
@@ -255,6 +688,75 @@
       .overlay-meta {
         font-size: 0.78rem;
         line-height: 1.35;
+      }
+
+      .run-summary {
+        width: min(100%, 280px);
+        margin-top: 8px;
+        padding: 10px;
+        border-radius: 20px;
+      }
+
+      .run-summary-grid {
+        gap: 8px;
+      }
+
+      .summary-stat {
+        padding: 9px 10px;
+        border-radius: 16px;
+      }
+
+      .summary-stat-label {
+        font-size: 0.56rem;
+        letter-spacing: 0.13em;
+      }
+
+      .summary-stat-value {
+        font-size: 1rem;
+      }
+
+      .shop-overlay {
+        padding:
+          calc(max(env(safe-area-inset-top), 0px) + 16px)
+          12px
+          calc(max(env(safe-area-inset-bottom), 0px) + 16px);
+      }
+
+      .shop-panel {
+        max-height: calc(100dvh - 32px);
+        padding: 14px;
+        border-radius: 22px;
+      }
+
+      .shop-grid {
+        gap: 8px;
+      }
+
+      .shop-head {
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .shop-head-main {
+        gap: 10px;
+      }
+
+      .swatch-card {
+        padding: 10px;
+        border-radius: 18px;
+      }
+
+      .swatch-preview {
+        height: 36px;
+        margin-bottom: 8px;
+      }
+
+      .swatch-name {
+        font-size: 0.76rem;
+      }
+
+      .swatch-price {
+        font-size: 0.64rem;
       }
     }
 
@@ -309,15 +811,65 @@
     <canvas id="gameCanvas" class="game-canvas" width="432" height="768" aria-hidden="true"></canvas>
 
     <div class="hud-layer">
+      <div class="hud-corner is-left" aria-label="Gem balance">
+        <span class="gem-dot" aria-hidden="true"></span>
+        <span id="gemValue" class="hud-value">0</span>
+      </div>
+
+      <div id="boostChip" class="boost-chip" aria-hidden="true">
+        <span class="boost-dot" aria-hidden="true"></span>
+        <strong id="boostLabel">Gem x2</strong>
+        <span id="boostTime">9s</span>
+      </div>
+
       <div id="scoreChip" class="hud-score">
         <strong id="scoreValue">0</strong>
         <span id="bestValue">BEST 0</span>
+      </div>
+
+      <div id="shopTrigger" class="hud-corner is-right">
+        <button id="shopButton" class="hud-button" type="button" aria-haspopup="dialog" aria-expanded="false">
+          Colors
+        </button>
       </div>
 
       <div id="overlayCopy" class="overlay-copy" aria-hidden="false">
         <p id="overlayLabel" class="overlay-label">Flappy</p>
         <h1 id="overlayTitle" class="overlay-title">Tap</h1>
         <p id="overlayMeta" class="overlay-meta">Tap / Space</p>
+        <div id="runSummary" class="run-summary" aria-hidden="true">
+          <div class="run-summary-grid">
+            <div class="summary-stat">
+              <span class="summary-stat-label">Score</span>
+              <strong id="summaryScore" class="summary-stat-value">0</strong>
+            </div>
+            <div class="summary-stat">
+              <span class="summary-stat-label">Gems</span>
+              <strong id="summaryGems" class="summary-stat-value">0</strong>
+            </div>
+            <div class="summary-stat">
+              <span class="summary-stat-label">Best</span>
+              <strong id="summaryBest" class="summary-stat-value">0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="shopOverlay" class="shop-overlay" aria-hidden="true">
+        <div id="shopBackdrop" class="shop-backdrop"></div>
+        <section class="shop-panel" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+          <div class="shop-head">
+            <div class="shop-head-main">
+              <h2 id="shopTitle" class="shop-title">Colors</h2>
+              <div class="shop-balance">
+                <span class="gem-dot" aria-hidden="true"></span>
+                <span id="shopGemValue">0</span>
+              </div>
+            </div>
+            <button id="shopCloseButton" class="shop-close" type="button" aria-label="Close colors">Close</button>
+          </div>
+          <div id="shopGrid" class="shop-grid"></div>
+        </section>
       </div>
 
       <div id="statusLive" class="sr-only" aria-live="polite"></div>
@@ -329,7 +881,8 @@
   </noscript>
 
   <script>
-    const STORAGE_KEY = "flappy-minimal-best-score";
+    const STORAGE_KEY = "flappy-minimal-save-v1";
+    const LEGACY_BEST_SCORE_KEY = "flappy-minimal-best-score";
 
     const GAME_WIDTH = 432;
     const GAME_HEIGHT = 768;
@@ -338,6 +891,48 @@
     const PIPE_WIDTH = 78;
     const FIXED_STEP = 1 / 120;
     const MAX_FRAME_TIME = 0.05;
+    const GEM_RADIUS = 12;
+    const BOOSTER_RADIUS = 15;
+    const GEM_BOOST_DURATION = 9;
+
+    const BIRD_COLORS = [
+      { id: "sand", name: "Sand", cost: 0, body: "#f6b05d", belly: "#f8e3b9", wing: "#f08c4a", beak: "#f08b34", accent: "rgba(120, 71, 23, 0.18)" },
+      { id: "jade", name: "Jade", cost: 50, body: "#59b981", belly: "#dff5df", wing: "#39956a", beak: "#f1a13e", accent: "rgba(34, 97, 61, 0.2)" },
+      { id: "amber", name: "Amber", cost: 100, body: "#f0b548", belly: "#fff0d0", wing: "#d59628", beak: "#e7802f", accent: "rgba(132, 92, 34, 0.18)" },
+      { id: "azure", name: "Azure", cost: 150, body: "#4c9dff", belly: "#e1f0ff", wing: "#2f7cdf", beak: "#f0aa4a", accent: "rgba(38, 80, 134, 0.18)" },
+      { id: "rose", name: "Rose", cost: 200, body: "#ff7cad", belly: "#ffe4ef", wing: "#f45892", beak: "#f3a255", accent: "rgba(132, 59, 88, 0.18)" },
+      { id: "mint", name: "Mint", cost: 250, body: "#7bd8b1", belly: "#ebfff6", wing: "#54b98d", beak: "#efab4d", accent: "rgba(53, 110, 84, 0.18)" },
+      { id: "crimson", name: "Crimson", cost: 300, body: "#ef5a5a", belly: "#ffe1e1", wing: "#cf4343", beak: "#f4ad54", accent: "rgba(140, 47, 47, 0.18)" },
+      { id: "teal", name: "Teal", cost: 350, body: "#2db6ad", belly: "#def9f6", wing: "#1e968e", beak: "#f0a34c", accent: "rgba(30, 98, 95, 0.18)" },
+      { id: "violet", name: "Violet", cost: 400, body: "#a365ef", belly: "#f0e3ff", wing: "#874bd7", beak: "#f2a752", accent: "rgba(93, 55, 134, 0.18)" },
+      { id: "cobalt", name: "Cobalt", cost: 450, body: "#3865d9", belly: "#dde7ff", wing: "#294bb4", beak: "#f0ab53", accent: "rgba(40, 63, 121, 0.18)" },
+      { id: "mono", name: "Mono", cost: 500, body: "#1a1a1f", belly: "#f4f5f7", wing: "#727781", beak: "#d6d9de", accent: "rgba(22, 22, 28, 0.22)", shimmerA: "#ffffff", shimmerB: "#eef1f5" },
+      { id: "iris", name: "Iris", cost: 550, body: "#8a72ff", belly: "#ece7ff", wing: "#7057ec", beak: "#f4b053", accent: "rgba(75, 57, 133, 0.18)" },
+      {
+        id: "peony",
+        name: "Peony",
+        cost: 600,
+        body: "#ff86c8",
+        belly: "#fff1f8",
+        wing: "#c96dff",
+        beak: "#f1a651",
+        accent: "rgba(151, 89, 172, 0.2)",
+        shimmerA: "#ffffff",
+        shimmerB: "#ffd7f0"
+      },
+      {
+        id: "prism",
+        name: "Prism",
+        cost: 650,
+        body: "#78b8ff",
+        belly: "#eef7ff",
+        wing: "#9b73ff",
+        beak: "#f1a651",
+        accent: "rgba(83, 96, 156, 0.2)",
+        shimmerA: "#ffffff",
+        shimmerB: "#d8f4ff"
+      }
+    ];
 
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     const lerp = (start, end, amount) => start + (end - start) * amount;
@@ -370,13 +965,28 @@
         this.ctx = this.canvas.getContext("2d");
 
         this.ui = {
+          gemValue: document.getElementById("gemValue"),
+          boostChip: document.getElementById("boostChip"),
+          boostLabel: document.getElementById("boostLabel"),
+          boostTime: document.getElementById("boostTime"),
           scoreValue: document.getElementById("scoreValue"),
           bestValue: document.getElementById("bestValue"),
           scoreChip: document.getElementById("scoreChip"),
+          shopTrigger: document.getElementById("shopTrigger"),
+          shopButton: document.getElementById("shopButton"),
+          shopOverlay: document.getElementById("shopOverlay"),
+          shopBackdrop: document.getElementById("shopBackdrop"),
+          shopCloseButton: document.getElementById("shopCloseButton"),
+          shopGemValue: document.getElementById("shopGemValue"),
+          shopGrid: document.getElementById("shopGrid"),
           overlayCopy: document.getElementById("overlayCopy"),
           overlayLabel: document.getElementById("overlayLabel"),
           overlayTitle: document.getElementById("overlayTitle"),
           overlayMeta: document.getElementById("overlayMeta"),
+          runSummary: document.getElementById("runSummary"),
+          summaryScore: document.getElementById("summaryScore"),
+          summaryGems: document.getElementById("summaryGems"),
+          summaryBest: document.getElementById("summaryBest"),
           statusLive: document.getElementById("statusLive")
         };
 
@@ -385,12 +995,18 @@
         this.resizeObserver = null;
         this.audioContext = null;
         this.audioEnabled = true;
+        this.boostLoop = null;
 
         this.mode = "ready";
-        this.bestScore = this.loadBestScore();
+        this.shopOpen = false;
+        this.progress = this.loadProgress();
+        this.bestScore = this.progress.bestScore;
+        this.dynamicPalette = null;
+        this.prismTransition = null;
+        this.boostAudioPulseTimer = 0;
+        this.lastBoostHudSecond = null;
         this.lastFrameTime = 0;
         this.accumulator = 0;
-        this.fullscreenAttempted = false;
         this.viewport = {
           width: GAME_WIDTH,
           height: GAME_HEIGHT,
@@ -419,6 +1035,7 @@
         this.state = this.createInitialState();
         this.background.clouds = this.createClouds();
         this.bindEvents();
+        this.renderShop();
         this.updateHud();
         this.updateOverlayState();
 
@@ -432,10 +1049,12 @@
         return {
           time: 0,
           score: 0,
+          roundGems: 0,
           groundOffset: 0,
           flash: 0,
           shake: 0,
           spawnTimer: 1.05,
+          gemBoostTimer: 0,
           bird: {
             x: coreX + GAME_WIDTH * 0.28,
             y: coreY + GAME_HEIGHT * 0.44,
@@ -444,12 +1063,15 @@
             wingPhase: 0
           },
           pipes: [],
+          gems: [],
+          boosters: [],
           particles: [],
           crashTimer: 0
         };
       }
 
       resetRound() {
+        this.stopBoostLoopSound();
         this.state = this.createInitialState();
         this.mode = "ready";
         this.lastFrameTime = 0;
@@ -460,6 +1082,9 @@
 
       bindEvents() {
         this.gameShell.addEventListener("pointerdown", (event) => {
+          if (this.shopOpen) {
+            return;
+          }
           event.preventDefault();
           this.handlePrimaryAction();
         });
@@ -478,20 +1103,54 @@
           }
         });
 
-        const handleFullscreenChange = () => {
-          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-            this.fullscreenAttempted = false;
-          }
-          this.syncCanvasResolution();
-        };
-
-        document.addEventListener("fullscreenchange", handleFullscreenChange);
-        document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-
         if (typeof ResizeObserver === "function") {
           this.resizeObserver = new ResizeObserver(() => this.syncCanvasResolution());
           this.resizeObserver.observe(this.gameShell);
         }
+
+        const handleShopToggle = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.toggleShop();
+        };
+
+        this.ui.shopTrigger.addEventListener("click", handleShopToggle);
+        this.ui.shopButton.addEventListener("click", handleShopToggle);
+
+        this.ui.shopTrigger.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+
+        this.ui.shopButton.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+
+        this.ui.shopBackdrop.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.closeShop();
+        });
+
+        this.ui.shopCloseButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.closeShop();
+        });
+
+        this.ui.shopCloseButton.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+
+        this.ui.shopOverlay.addEventListener("pointerdown", (event) => {
+          if (event.target === this.ui.shopOverlay) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.closeShop();
+          }
+        });
 
         if (typeof this.mediaQuery.addEventListener === "function") {
           this.mediaQuery.addEventListener("change", (event) => {
@@ -514,6 +1173,23 @@
         const flapKeys = [" ", "spacebar", "arrowup", "w"];
         const pauseKeys = ["escape", "p"];
         const restartKeys = ["r", "enter"];
+        const shopKeys = ["b"];
+
+        if (shopKeys.includes(key)) {
+          event.preventDefault();
+          this.toggleShop();
+          return;
+        }
+
+        if (key === "escape" && this.shopOpen) {
+          event.preventDefault();
+          this.closeShop();
+          return;
+        }
+
+        if (this.shopOpen) {
+          return;
+        }
 
         if (flapKeys.includes(key)) {
           if (event.repeat) {
@@ -580,6 +1256,16 @@
             pipe.gapY += deltaY;
           }
 
+          for (const gem of this.state.gems) {
+            gem.x += deltaX;
+            gem.y += deltaY;
+          }
+
+          for (const booster of this.state.boosters) {
+            booster.x += deltaX;
+            booster.y += deltaY;
+          }
+
           for (const particle of this.state.particles) {
             particle.x += deltaX;
             particle.y += deltaY;
@@ -600,19 +1286,152 @@
         this.render();
       }
 
-      loadBestScore() {
-        try {
-          const raw = window.localStorage.getItem(STORAGE_KEY);
-          const parsed = Number(raw);
-          return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-        } catch (error) {
-          return 0;
+      getColorById(colorId) {
+        return BIRD_COLORS.find((color) => color.id === colorId) || BIRD_COLORS[0];
+      }
+
+      getSelectedPalette() {
+        if (this.progress.selectedColorId === "prism") {
+          if (!this.dynamicPalette) {
+            this.dynamicPalette = this.createDynamicPalette();
+          }
+          return this.formatDynamicPalette(this.dynamicPalette);
+        }
+
+        return this.getColorById(this.progress.selectedColorId);
+      }
+
+      createDynamicPalette() {
+        const hue = Math.floor(randomRange(0, 360));
+        const wingHue = (hue + randomRange(35, 110)) % 360;
+        const accentHue = (hue + randomRange(140, 220)) % 360;
+
+        return {
+          id: "prism",
+          name: "Prism",
+          body: this.hslToRgb(hue, 88, 66),
+          belly: this.hslToRgb(hue, 92, 94),
+          wing: this.hslToRgb(wingHue, 82, 60),
+          beak: "#f1a651",
+          accent: this.hslToRgb(accentHue, 46, 38),
+          shimmerA: "rgba(255, 255, 255, 0.96)",
+          shimmerB: this.hslToRgb(hue, 100, 92)
+        };
+      }
+
+      refreshDynamicPalette() {
+        const nextPalette = this.createDynamicPalette();
+
+        if (!this.dynamicPalette) {
+          this.dynamicPalette = nextPalette;
+          this.prismTransition = null;
+          return;
+        }
+
+        this.prismTransition = {
+          from: this.dynamicPalette,
+          to: nextPalette,
+          elapsed: 0,
+          duration: 0.3
+        };
+      }
+
+      updatePrismTransition(dt) {
+        if (!this.prismTransition) {
+          return;
+        }
+
+        this.prismTransition.elapsed += dt;
+        const t = clamp(this.prismTransition.elapsed / this.prismTransition.duration, 0, 1);
+        this.dynamicPalette = this.mixDynamicPalettes(this.prismTransition.from, this.prismTransition.to, t);
+
+        if (t >= 1) {
+          this.dynamicPalette = this.prismTransition.to;
+          this.prismTransition = null;
         }
       }
 
-      saveBestScore() {
+      mixDynamicPalettes(fromPalette, toPalette, t) {
+        return {
+          id: "prism",
+          name: "Prism",
+          body: this.mixRgb(fromPalette.body, toPalette.body, t),
+          belly: this.mixRgb(fromPalette.belly, toPalette.belly, t),
+          wing: this.mixRgb(fromPalette.wing, toPalette.wing, t),
+          beak: "#f1a651",
+          accent: this.mixRgb(fromPalette.accent, toPalette.accent, t),
+          shimmerA: "rgba(255, 255, 255, 0.96)",
+          shimmerB: this.mixRgb(fromPalette.shimmerB, toPalette.shimmerB, t)
+        };
+      }
+
+      mixRgb(fromColor, toColor, t) {
+        return {
+          r: Math.round(lerp(fromColor.r, toColor.r, t)),
+          g: Math.round(lerp(fromColor.g, toColor.g, t)),
+          b: Math.round(lerp(fromColor.b, toColor.b, t))
+        };
+      }
+
+      formatDynamicPalette(palette) {
+        return {
+          id: "prism",
+          name: "Prism",
+          body: this.rgbToCss(palette.body),
+          belly: this.rgbToCss(palette.belly),
+          wing: this.rgbToCss(palette.wing),
+          beak: "#f1a651",
+          accent: this.rgbToCss(palette.accent, 0.22),
+          shimmerA: "rgba(255, 255, 255, 0.96)",
+          shimmerB: this.rgbToCss(palette.shimmerB, 0.92)
+        };
+      }
+
+      loadProgress() {
         try {
-          window.localStorage.setItem(STORAGE_KEY, String(this.bestScore));
+          const raw = window.localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : null;
+
+          if (!parsed || typeof parsed !== "object") {
+            const legacyBestScore = Number(window.localStorage.getItem(LEGACY_BEST_SCORE_KEY));
+            return {
+              bestScore: Number.isFinite(legacyBestScore) && legacyBestScore >= 0 ? legacyBestScore : 0,
+              gems: 0,
+              selectedColorId: BIRD_COLORS[0].id,
+              unlockedColorIds: [BIRD_COLORS[0].id]
+            };
+          }
+
+          const unlockedSet = new Set(
+            Array.isArray(parsed.unlockedColorIds) ? parsed.unlockedColorIds.filter((value) => typeof value === "string") : []
+          );
+          unlockedSet.add(BIRD_COLORS[0].id);
+
+          const selectedColorId = this.getColorById(parsed.selectedColorId).id;
+          if (!unlockedSet.has(selectedColorId)) {
+            unlockedSet.add(selectedColorId);
+          }
+
+          return {
+            bestScore: Number.isFinite(parsed.bestScore) && parsed.bestScore >= 0 ? parsed.bestScore : 0,
+            gems: Number.isFinite(parsed.gems) && parsed.gems >= 0 ? Math.floor(parsed.gems) : 0,
+            selectedColorId,
+            unlockedColorIds: Array.from(unlockedSet)
+          };
+        } catch (error) {
+          return {
+            bestScore: 0,
+            gems: 0,
+            selectedColorId: BIRD_COLORS[0].id,
+            unlockedColorIds: [BIRD_COLORS[0].id]
+          };
+        }
+      }
+
+      saveProgress() {
+        try {
+          this.progress.bestScore = this.bestScore;
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.progress));
         } catch (error) {
           // Local storage can be blocked in some private browsing contexts.
         }
@@ -635,10 +1454,13 @@
       }
 
       handlePrimaryAction() {
+        if (this.shopOpen) {
+          return;
+        }
+
         this.unlockAudio();
 
         if (this.mode === "ready") {
-          this.ensureFullscreen();
           this.startRound();
           return;
         }
@@ -649,13 +1471,11 @@
         }
 
         if (this.mode === "paused") {
-          this.ensureFullscreen();
           this.resume();
           return;
         }
 
         if (this.mode === "gameover") {
-          this.ensureFullscreen();
           this.restartRound();
         }
       }
@@ -665,17 +1485,27 @@
         this.state.score = 0;
         this.state.spawnTimer = 0.82;
         this.state.pipes.length = 0;
+        this.state.gems.length = 0;
+        this.state.boosters.length = 0;
         this.state.particles.length = 0;
         this.state.crashTimer = 0;
         this.state.flash = 0;
         this.state.shake = 0;
         this.state.time = 0;
+        this.state.roundGems = 0;
         this.state.groundOffset = 0;
+        this.state.gemBoostTimer = 0;
+        this.boostAudioPulseTimer = 0;
+        this.lastBoostHudSecond = null;
+        this.stopBoostLoopSound();
         this.state.bird.x = this.core.x + GAME_WIDTH * 0.28;
         this.state.bird.y = this.core.y + GAME_HEIGHT * 0.44;
         this.state.bird.velocity = 0;
         this.state.bird.rotation = -0.08;
         this.state.bird.wingPhase = 0;
+        if (this.progress.selectedColorId === "prism") {
+          this.refreshDynamicPalette();
+        }
         this.lastFrameTime = 0;
         this.accumulator = 0;
         this.playStartSound();
@@ -752,6 +1582,10 @@
         this.state.flash = Math.max(0, this.state.flash - dt * 1.8);
         this.state.shake = Math.max(0, this.state.shake - dt * 2.5);
 
+        if (this.progress.selectedColorId === "prism") {
+          this.updatePrismTransition(dt);
+        }
+
         this.updateClouds(dt);
         this.updateParticles(dt);
 
@@ -796,6 +1630,30 @@
       updatePlaying(dt) {
         const groundTop = this.core.y + GAME_HEIGHT - GROUND_HEIGHT;
         const speed = this.getPipeSpeed();
+        const wasBoosting = this.state.gemBoostTimer > 0;
+        this.state.gemBoostTimer = Math.max(0, this.state.gemBoostTimer - dt);
+        if (this.state.gemBoostTimer > 0) {
+          this.updateBoostLoopSound();
+          const boostSecond = Math.ceil(this.state.gemBoostTimer);
+          if (boostSecond !== this.lastBoostHudSecond) {
+            this.lastBoostHudSecond = boostSecond;
+            this.updateHud();
+          }
+
+          this.boostAudioPulseTimer -= dt;
+          if (this.boostAudioPulseTimer <= 0) {
+            this.playBoostActivePulse();
+            const ratio = clamp(this.state.gemBoostTimer / GEM_BOOST_DURATION, 0, 1);
+            this.boostAudioPulseTimer = 0.42 + ratio * 0.66;
+          }
+        }
+
+        if (wasBoosting !== (this.state.gemBoostTimer > 0)) {
+          if (this.state.gemBoostTimer <= 0) {
+            this.stopBoostLoopSound();
+          }
+          this.updateHud();
+        }
 
         this.state.groundOffset += speed * dt;
         this.state.bird.wingPhase += dt * 18;
@@ -831,6 +1689,45 @@
           }
         }
 
+        for (let index = this.state.gems.length - 1; index >= 0; index -= 1) {
+          const gem = this.state.gems[index];
+          gem.x -= speed * dt;
+          gem.float += dt * gem.floatSpeed;
+
+          if (gem.x + GEM_RADIUS < -30) {
+            this.state.gems.splice(index, 1);
+            continue;
+          }
+
+          const dx = this.state.bird.x - gem.x;
+          const dy = this.state.bird.y - (gem.y + Math.sin(gem.float) * 8);
+          const radius = BIRD_RADIUS + GEM_RADIUS + 2;
+
+          if (dx * dx + dy * dy <= radius * radius) {
+            this.collectGem(index);
+          }
+        }
+
+        for (let index = this.state.boosters.length - 1; index >= 0; index -= 1) {
+          const booster = this.state.boosters[index];
+          booster.x -= speed * dt;
+          booster.float += dt * booster.floatSpeed;
+          booster.spin += dt * 1.9;
+
+          if (booster.x + BOOSTER_RADIUS < -30) {
+            this.state.boosters.splice(index, 1);
+            continue;
+          }
+
+          const dx = this.state.bird.x - booster.x;
+          const dy = this.state.bird.y - (booster.y + Math.sin(booster.float) * 10);
+          const radius = BIRD_RADIUS + BOOSTER_RADIUS + 3;
+
+          if (dx * dx + dy * dy <= radius * radius) {
+            this.collectBooster(index);
+          }
+        }
+
         if (this.checkPipeCollision() || this.state.bird.y + BIRD_RADIUS >= groundTop) {
           this.triggerCrash();
         }
@@ -850,6 +1747,17 @@
 
         for (const pipe of this.state.pipes) {
           pipe.x -= crashSpeed * dt;
+        }
+
+        for (const gem of this.state.gems) {
+          gem.x -= crashSpeed * dt;
+          gem.float += dt * gem.floatSpeed;
+        }
+
+        for (const booster of this.state.boosters) {
+          booster.x -= crashSpeed * dt;
+          booster.float += dt * booster.floatSpeed;
+          booster.spin += dt * 1.9;
         }
 
         if (this.state.bird.y + BIRD_RADIUS >= groundTop) {
@@ -890,12 +1798,48 @@
           gapY = clamp(gapY, previousPipe.gapY - 126, previousPipe.gapY + 126);
         }
 
-        this.state.pipes.push({
+        const pipe = {
           x: spawnX,
           width: PIPE_WIDTH,
           gapY,
           gap,
           scored: false
+        };
+        this.state.pipes.push(pipe);
+
+        if (Math.random() < 0.68) {
+          this.spawnGem(pipe);
+        }
+
+        if (
+          this.state.boosters.length === 0 &&
+          this.state.gemBoostTimer <= 0 &&
+          this.state.score >= 3 &&
+          Math.random() < 0.08
+        ) {
+          this.spawnBooster(pipe);
+        }
+      }
+
+      spawnGem(pipe) {
+        const sideOffset = randomRange(-18, 24);
+        const verticalRoom = Math.max(34, pipe.gap * 0.28);
+
+        this.state.gems.push({
+          x: pipe.x + pipe.width * 0.5 + sideOffset,
+          y: clamp(pipe.gapY + randomRange(-verticalRoom, verticalRoom), this.core.y + 120, this.core.y + GAME_HEIGHT - GROUND_HEIGHT - 120),
+          float: randomRange(0, Math.PI * 2),
+          floatSpeed: randomRange(2.2, 3.4)
+        });
+      }
+
+      spawnBooster(pipe) {
+        this.state.boosters.push({
+          x: pipe.x + pipe.width * 0.5 + randomRange(-10, 10),
+          y: clamp(pipe.gapY + randomRange(-18, 18), this.core.y + 126, this.core.y + GAME_HEIGHT - GROUND_HEIGHT - 126),
+          float: randomRange(0, Math.PI * 2),
+          floatSpeed: randomRange(2.4, 3.2),
+          spin: randomRange(0, Math.PI * 2)
         });
       }
 
@@ -932,6 +1876,7 @@
           return;
         }
 
+        this.stopBoostLoopSound();
         this.mode = "crashed";
         this.state.crashTimer = 0;
         this.state.flash = 0.24;
@@ -956,7 +1901,11 @@
       handleScoreIncrease() {
         if (this.state.score > this.bestScore) {
           this.bestScore = this.state.score;
-          this.saveBestScore();
+          this.saveProgress();
+        }
+
+        if (this.progress.selectedColorId === "prism") {
+          this.refreshDynamicPalette();
         }
 
         this.state.flash = Math.max(this.state.flash, 0.04);
@@ -965,6 +1914,33 @@
         this.updateHud();
         this.playScoreSound();
         this.announce(`Score ${this.state.score}.`);
+      }
+
+      collectGem(index) {
+        const gem = this.state.gems[index];
+        this.state.gems.splice(index, 1);
+        const amount = this.state.gemBoostTimer > 0 ? 2 : 1;
+        this.progress.gems += amount;
+        this.state.roundGems += amount;
+        this.saveProgress();
+        this.updateHud();
+        this.renderShop();
+        this.spawnGemParticles(gem.x, gem.y);
+        this.playGemSound();
+        this.announce(amount > 1 ? `Gem x2. ${this.progress.gems}.` : `Gem ${this.progress.gems}.`);
+      }
+
+      collectBooster(index) {
+        const booster = this.state.boosters[index];
+        this.state.boosters.splice(index, 1);
+        this.state.gemBoostTimer = GEM_BOOST_DURATION;
+        this.boostAudioPulseTimer = 0.01;
+        this.startBoostLoopSound();
+        this.updateBoostLoopSound();
+        this.updateHud();
+        this.spawnBoosterParticles(booster.x, booster.y);
+        this.playBoosterSound();
+        this.announce("Gem boost.");
       }
 
       unlockAudio() {
@@ -1054,6 +2030,149 @@
         });
       }
 
+      playGemSound() {
+        this.playTone({
+          frequency: 940,
+          frequencyEnd: 1320,
+          type: "triangle",
+          duration: 0.11,
+          gain: 0.024
+        });
+      }
+
+      playBoosterSound() {
+        this.playTone({
+          frequency: 480,
+          frequencyEnd: 520,
+          type: "triangle",
+          duration: 0.08,
+          gain: 0.01
+        });
+        this.playTone({
+          frequency: 640,
+          frequencyEnd: 700,
+          type: "triangle",
+          duration: 0.09,
+          gain: 0.009,
+          when: 0.05
+        });
+        this.playTone({
+          frequency: 860,
+          frequencyEnd: 940,
+          type: "triangle",
+          duration: 0.11,
+          gain: 0.008,
+          when: 0.1
+        });
+      }
+
+      playBoostActivePulse() {
+        if (this.state.gemBoostTimer <= 0) {
+          return;
+        }
+
+        const ratio = clamp(this.state.gemBoostTimer / GEM_BOOST_DURATION, 0, 1);
+        const gain = 0.005 + ratio * 0.013;
+        const start = 360 + ratio * 140;
+        const end = 280 + ratio * 120;
+
+        this.playTone({
+          frequency: start,
+          frequencyEnd: end,
+          type: "sine",
+          duration: 0.12,
+          gain
+        });
+      }
+
+      startBoostLoopSound() {
+        if (!this.audioContext || !this.audioEnabled) {
+          return;
+        }
+
+        this.stopBoostLoopSound();
+
+        const droneOscillator = this.audioContext.createOscillator();
+        const shimmerOscillator = this.audioContext.createOscillator();
+        const droneGain = this.audioContext.createGain();
+        const shimmerGain = this.audioContext.createGain();
+        const mixGain = this.audioContext.createGain();
+        const now = this.audioContext.currentTime;
+
+        droneOscillator.type = "sine";
+        shimmerOscillator.type = "triangle";
+        droneOscillator.frequency.setValueAtTime(220, now);
+        shimmerOscillator.frequency.setValueAtTime(440, now);
+        droneGain.gain.setValueAtTime(0.0001, now);
+        shimmerGain.gain.setValueAtTime(0.0001, now);
+        mixGain.gain.setValueAtTime(0.0001, now);
+
+        droneOscillator.connect(droneGain);
+        shimmerOscillator.connect(shimmerGain);
+        droneGain.connect(mixGain);
+        shimmerGain.connect(mixGain);
+        mixGain.connect(this.audioContext.destination);
+
+        droneOscillator.start(now);
+        shimmerOscillator.start(now);
+
+        this.boostLoop = {
+          droneOscillator,
+          shimmerOscillator,
+          droneGain,
+          shimmerGain,
+          mixGain
+        };
+      }
+
+      updateBoostLoopSound() {
+        if (!this.boostLoop || !this.audioContext || this.state.gemBoostTimer <= 0) {
+          return;
+        }
+
+        const ratio = clamp(this.state.gemBoostTimer / GEM_BOOST_DURATION, 0, 1);
+        const now = this.audioContext.currentTime;
+        const mixGain = 0.012 + ratio * 0.026;
+        const droneGain = 0.008 + ratio * 0.014;
+        const shimmerGain = 0.004 + ratio * 0.011;
+        const droneFrequency = 190 + ratio * 110;
+        const shimmerFrequency = 360 + ratio * 320;
+
+        this.boostLoop.mixGain.gain.cancelScheduledValues(now);
+        this.boostLoop.droneGain.gain.cancelScheduledValues(now);
+        this.boostLoop.shimmerGain.gain.cancelScheduledValues(now);
+        this.boostLoop.droneOscillator.frequency.cancelScheduledValues(now);
+        this.boostLoop.shimmerOscillator.frequency.cancelScheduledValues(now);
+
+        this.boostLoop.mixGain.gain.setTargetAtTime(mixGain, now, 0.08);
+        this.boostLoop.droneGain.gain.setTargetAtTime(droneGain, now, 0.08);
+        this.boostLoop.shimmerGain.gain.setTargetAtTime(shimmerGain, now, 0.08);
+        this.boostLoop.droneOscillator.frequency.setTargetAtTime(droneFrequency, now, 0.12);
+        this.boostLoop.shimmerOscillator.frequency.setTargetAtTime(shimmerFrequency, now, 0.12);
+      }
+
+      stopBoostLoopSound() {
+        if (!this.boostLoop || !this.audioContext) {
+          this.boostLoop = null;
+          return;
+        }
+
+        const now = this.audioContext.currentTime;
+        const stopTime = now + 0.18;
+
+        this.boostLoop.mixGain.gain.cancelScheduledValues(now);
+        this.boostLoop.mixGain.gain.setTargetAtTime(0.0001, now, 0.06);
+
+        try {
+          this.boostLoop.droneOscillator.stop(stopTime);
+          this.boostLoop.shimmerOscillator.stop(stopTime);
+        } catch (error) {
+          // Oscillators may already be stopping.
+        }
+
+        this.boostLoop = null;
+      }
+
       playStartSound() {
         this.playTone({
           frequency: 440,
@@ -1075,6 +2194,8 @@
           return;
         }
 
+        const palette = this.getSelectedPalette();
+
         for (let index = 0; index < 4; index += 1) {
           this.state.particles.push({
             x: this.state.bird.x - 12,
@@ -1084,7 +2205,7 @@
             size: randomRange(4, 7),
             life: randomRange(0.16, 0.32),
             maxLife: 0.32,
-            color: "rgba(255, 171, 86, 0.55)"
+            color: this.colorWithAlpha(index % 2 === 0 ? palette.wing : palette.body, 0.58)
           });
         }
       }
@@ -1093,6 +2214,8 @@
         if (this.reducedMotion) {
           return;
         }
+
+        const palette = this.getSelectedPalette();
 
         for (let index = 0; index < 8; index += 1) {
           this.state.particles.push({
@@ -1103,7 +2226,45 @@
             size: randomRange(4, 8),
             life: randomRange(0.28, 0.48),
             maxLife: 0.48,
-            color: index % 2 === 0 ? "rgba(255, 162, 77, 0.7)" : "rgba(255, 231, 183, 0.82)"
+            color: this.colorWithAlpha(index % 2 === 0 ? palette.body : palette.belly, index % 2 === 0 ? 0.74 : 0.86)
+          });
+        }
+      }
+
+      spawnGemParticles(x, y) {
+        if (this.reducedMotion) {
+          return;
+        }
+
+        for (let index = 0; index < 10; index += 1) {
+          this.state.particles.push({
+            x,
+            y,
+            vx: randomRange(-56, 56),
+            vy: randomRange(-96, -26),
+            size: randomRange(3, 6),
+            life: randomRange(0.3, 0.52),
+            maxLife: 0.52,
+            color: index % 2 === 0 ? "rgba(79, 231, 255, 0.8)" : "rgba(143, 125, 255, 0.78)"
+          });
+        }
+      }
+
+      spawnBoosterParticles(x, y) {
+        if (this.reducedMotion) {
+          return;
+        }
+
+        for (let index = 0; index < 14; index += 1) {
+          this.state.particles.push({
+            x,
+            y,
+            vx: randomRange(-80, 80),
+            vy: randomRange(-120, -18),
+            size: randomRange(3, 7),
+            life: randomRange(0.38, 0.62),
+            maxLife: 0.62,
+            color: index % 2 === 0 ? "rgba(255, 226, 110, 0.86)" : "rgba(255, 255, 255, 0.92)"
           });
         }
       }
@@ -1125,57 +2286,237 @@
         }
       }
 
+      colorWithAlpha(color, alpha) {
+        if (typeof color !== "string") {
+          return `rgba(255, 255, 255, ${alpha})`;
+        }
+
+        if (color.startsWith("rgba(") || color.startsWith("hsla(")) {
+          return color.replace(/,\s*[\d.]+\)$/u, `, ${alpha})`);
+        }
+
+        if (color.startsWith("rgb(")) {
+          return color.replace(/^rgb\((.*)\)$/u, `rgba($1, ${alpha})`);
+        }
+
+        if (color.startsWith("hsl(")) {
+          return color.replace(/^hsl\((.*)\)$/u, `hsla($1 / ${alpha})`);
+        }
+
+        if (!color.startsWith("#")) {
+          return `rgba(255, 255, 255, ${alpha})`;
+        }
+
+        const normalized = color.length === 4
+          ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
+          : color;
+        const red = Number.parseInt(normalized.slice(1, 3), 16);
+        const green = Number.parseInt(normalized.slice(3, 5), 16);
+        const blue = Number.parseInt(normalized.slice(5, 7), 16);
+
+        if ([red, green, blue].some((value) => Number.isNaN(value))) {
+          return `rgba(255, 255, 255, ${alpha})`;
+        }
+
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+      }
+
+      hslToRgb(hue, saturation, lightness) {
+        const s = saturation / 100;
+        const l = lightness / 100;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const h = hue / 60;
+        const x = c * (1 - Math.abs((h % 2) - 1));
+        let r1 = 0;
+        let g1 = 0;
+        let b1 = 0;
+
+        if (h >= 0 && h < 1) {
+          r1 = c;
+          g1 = x;
+        } else if (h < 2) {
+          r1 = x;
+          g1 = c;
+        } else if (h < 3) {
+          g1 = c;
+          b1 = x;
+        } else if (h < 4) {
+          g1 = x;
+          b1 = c;
+        } else if (h < 5) {
+          r1 = x;
+          b1 = c;
+        } else {
+          r1 = c;
+          b1 = x;
+        }
+
+        const m = l - c * 0.5;
+        return {
+          r: Math.round((r1 + m) * 255),
+          g: Math.round((g1 + m) * 255),
+          b: Math.round((b1 + m) * 255)
+        };
+      }
+
+      rgbToCss(color, alpha = null) {
+        if (alpha == null) {
+          return `rgb(${color.r}, ${color.g}, ${color.b})`;
+        }
+
+        return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+      }
+
       updateHud() {
+        this.ui.gemValue.textContent = String(this.progress.gems);
+        this.ui.shopGemValue.textContent = String(this.progress.gems);
         this.ui.scoreValue.textContent = String(this.state.score);
         this.ui.bestValue.textContent = `BEST ${this.bestScore}`;
+
+        const boostActive = this.state.gemBoostTimer > 0;
+        this.ui.boostChip.classList.toggle("is-visible", boostActive);
+        this.ui.boostChip.setAttribute("aria-hidden", String(!boostActive));
+        if (boostActive) {
+          const secondsLeft = Math.max(1, Math.ceil(this.state.gemBoostTimer));
+          this.lastBoostHudSecond = secondsLeft;
+          this.ui.boostLabel.textContent = "Gem x2";
+          this.ui.boostTime.textContent = `${secondsLeft}s`;
+        } else {
+          this.lastBoostHudSecond = null;
+        }
       }
 
       updateOverlayState() {
         const overlayVisible = this.mode === "ready" || this.mode === "paused" || this.mode === "gameover";
+        const showSummary = this.mode === "gameover";
         this.ui.overlayCopy.classList.toggle("is-hidden", !overlayVisible);
         this.ui.overlayCopy.setAttribute("aria-hidden", String(!overlayVisible));
+        this.ui.runSummary.classList.toggle("is-visible", showSummary);
+        this.ui.runSummary.setAttribute("aria-hidden", String(!showSummary));
 
         if (this.mode === "ready") {
           this.ui.overlayLabel.textContent = "Flappy";
           this.ui.overlayTitle.textContent = "Tap";
-          this.ui.overlayMeta.textContent = "Tap / Space";
+          this.ui.overlayMeta.textContent = "Tap to start";
           return;
         }
 
         if (this.mode === "paused") {
           this.ui.overlayLabel.textContent = "Pause";
           this.ui.overlayTitle.textContent = "Tap";
-          this.ui.overlayMeta.textContent = "Tap / Esc";
+          this.ui.overlayMeta.textContent = "Tap to resume";
           return;
         }
 
         if (this.mode === "gameover") {
-          this.ui.overlayLabel.textContent = `${this.state.score}`;
-          this.ui.overlayTitle.textContent = "Again";
-          this.ui.overlayMeta.textContent = `Best ${this.bestScore}`;
+          this.ui.overlayLabel.textContent = "Game Over";
+          this.ui.overlayTitle.textContent = `${this.state.score}`;
+          this.ui.overlayMeta.textContent = "Tap to retry";
+          this.ui.summaryScore.textContent = String(this.state.score);
+          this.ui.summaryGems.textContent = String(this.state.roundGems);
+          this.ui.summaryBest.textContent = String(this.bestScore);
         }
       }
 
-      ensureFullscreen() {
-        if (document.fullscreenElement || document.webkitFullscreenElement || this.fullscreenAttempted) {
+      toggleShop() {
+        if (this.shopOpen) {
+          this.closeShop();
           return;
         }
 
-        const requestFullscreen =
-          this.gameShell.requestFullscreen ||
-          this.gameShell.webkitRequestFullscreen;
+        this.openShop();
+      }
 
-        if (typeof requestFullscreen !== "function") {
+      openShop() {
+        this.unlockAudio();
+
+        if (this.mode === "playing") {
+          this.pause();
+        }
+
+        this.shopOpen = true;
+        this.ui.shopOverlay.classList.add("is-visible");
+        this.ui.shopOverlay.setAttribute("aria-hidden", "false");
+        this.ui.shopButton.setAttribute("aria-expanded", "true");
+        this.renderShop();
+      }
+
+      closeShop() {
+        this.shopOpen = false;
+        this.ui.shopOverlay.classList.remove("is-visible");
+        this.ui.shopOverlay.setAttribute("aria-hidden", "true");
+        this.ui.shopButton.setAttribute("aria-expanded", "false");
+      }
+
+      isColorUnlocked(colorId) {
+        return this.progress.unlockedColorIds.includes(colorId);
+      }
+
+      unlockColor(colorId) {
+        if (!this.isColorUnlocked(colorId)) {
+          this.progress.unlockedColorIds.push(colorId);
+        }
+      }
+
+      selectColor(colorId) {
+        const color = this.getColorById(colorId);
+        if (!this.isColorUnlocked(color.id)) {
+          if (this.progress.gems < color.cost) {
+            this.announce(`Need ${color.cost}.`);
+            return;
+          }
+
+          this.progress.gems -= color.cost;
+          this.unlockColor(color.id);
+        }
+
+        this.progress.selectedColorId = color.id;
+        this.dynamicPalette = color.id === "prism" ? this.createDynamicPalette() : null;
+        this.prismTransition = null;
+        this.saveProgress();
+        this.updateHud();
+        this.renderShop();
+        this.closeShop();
+        this.announce(`${color.name}.`);
+      }
+
+      renderShop() {
+        if (!this.ui.shopGrid) {
           return;
         }
 
-        this.fullscreenAttempted = true;
+        this.ui.shopGemValue.textContent = String(this.progress.gems);
+        this.ui.shopGrid.innerHTML = "";
 
-        const request = requestFullscreen.call(this.gameShell);
-        if (request && typeof request.catch === "function") {
-          request.catch(() => {
-            this.fullscreenAttempted = false;
+        for (const color of BIRD_COLORS) {
+          const unlocked = this.isColorUnlocked(color.id);
+          const selected = this.progress.selectedColorId === color.id;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `swatch-card${selected ? " is-selected" : ""}${unlocked ? "" : " is-locked"}`;
+          button.setAttribute("aria-pressed", String(selected));
+          button.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
           });
+
+          const preview = document.createElement("div");
+          preview.className = "swatch-preview";
+          preview.style.background = color.id === "prism"
+            ? "linear-gradient(135deg, #57d7ff 0%, #7b8dff 34%, #d178ff 66%, #ff85b8 100%)"
+            : `linear-gradient(135deg, ${color.body} 0%, ${color.wing} 100%)`;
+
+          const name = document.createElement("span");
+          name.className = "swatch-name";
+          name.textContent = color.name;
+
+          const price = document.createElement("span");
+          price.className = "swatch-price";
+          price.textContent = selected ? (color.id === "prism" ? "Live" : "On") : unlocked ? "Use" : `${color.cost} gem`;
+
+          button.append(preview, name, price);
+          button.addEventListener("click", () => this.selectColor(color.id));
+          this.ui.shopGrid.appendChild(button);
         }
       }
 
@@ -1204,6 +2545,8 @@
 
         this.drawBackground(ctx);
         this.drawPipes(ctx);
+        this.drawGems(ctx);
+        this.drawBoosters(ctx);
         this.drawParticles(ctx);
         this.drawBird(ctx);
         this.drawGround(ctx);
@@ -1316,6 +2659,75 @@
         }
       }
 
+      drawGems(ctx) {
+        for (const gem of this.state.gems) {
+          const y = gem.y + Math.sin(gem.float) * 8;
+
+          ctx.save();
+          ctx.translate(gem.x, y);
+
+          const gemGradient = ctx.createLinearGradient(-12, -12, 12, 12);
+          gemGradient.addColorStop(0, "#9ef8ff");
+          gemGradient.addColorStop(0.45, "#4ed7ff");
+          gemGradient.addColorStop(1, "#8678ff");
+
+          ctx.fillStyle = "rgba(61, 184, 255, 0.18)";
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.rotate(Math.PI * 0.25);
+          roundedRectPath(ctx, -10, -10, 20, 20, 4);
+          ctx.fillStyle = gemGradient;
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.58)";
+          ctx.stroke();
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.36)";
+          roundedRectPath(ctx, -4, -8, 6, 10, 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      drawBoosters(ctx) {
+        for (const booster of this.state.boosters) {
+          const y = booster.y + Math.sin(booster.float) * 10;
+
+          ctx.save();
+          ctx.translate(booster.x, y);
+          ctx.rotate(booster.spin);
+
+          const aura = ctx.createRadialGradient(0, 0, 2, 0, 0, 24);
+          aura.addColorStop(0, "rgba(255, 236, 147, 0.54)");
+          aura.addColorStop(1, "rgba(255, 236, 147, 0)");
+          ctx.fillStyle = aura;
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#ffe47a";
+          roundedRectPath(ctx, -11, -11, 22, 22, 6);
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.96)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, -8);
+          ctx.lineTo(0, 8);
+          ctx.moveTo(-8, 0);
+          ctx.lineTo(8, 0);
+          ctx.stroke();
+
+          ctx.restore();
+        }
+      }
+
       drawPipeSegment(ctx, x, y, width, height, topPipe) {
         if (height <= 0) {
           return;
@@ -1365,6 +2777,7 @@
       drawBird(ctx) {
         const bird = this.state.bird;
         const wingLift = Math.sin(bird.wingPhase) * 0.65;
+        const palette = this.getSelectedPalette();
 
         ctx.save();
         ctx.translate(bird.x, bird.y);
@@ -1376,12 +2789,16 @@
 
         ctx.rotate(bird.rotation);
 
-        ctx.fillStyle = "#f8e3b9";
+        ctx.fillStyle = palette.belly;
         ctx.beginPath();
         ctx.ellipse(-4, 3, 18, 16, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = "#f6b05d";
+        const bodyGradient = ctx.createLinearGradient(-18, -16, 20, 18);
+        bodyGradient.addColorStop(0, palette.belly);
+        bodyGradient.addColorStop(0.4, palette.body);
+        bodyGradient.addColorStop(1, palette.wing);
+        ctx.fillStyle = bodyGradient;
         ctx.beginPath();
         ctx.ellipse(0, 0, 20, 18, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -1396,7 +2813,7 @@
         ctx.arc(8.8, -4.8, 2.4, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = "#f08b34";
+        ctx.fillStyle = palette.beak;
         ctx.beginPath();
         ctx.moveTo(17, 1);
         ctx.lineTo(30, 5);
@@ -1407,13 +2824,29 @@
         ctx.save();
         ctx.translate(-5, 4 + wingLift * 3);
         ctx.rotate(-0.65 + wingLift * 0.3);
-        ctx.fillStyle = "#f08c4a";
+        ctx.fillStyle = palette.wing;
         ctx.beginPath();
         ctx.ellipse(0, 0, 14, 8, -0.2, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        ctx.strokeStyle = "rgba(120, 71, 23, 0.18)";
+        if (palette.id === "peony") {
+          ctx.fillStyle = palette.shimmerB || "rgba(255, 232, 245, 0.82)";
+          ctx.beginPath();
+          ctx.ellipse(-2, -7, 8, 4.8, -0.35, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = palette.shimmerA || "rgba(255, 255, 255, 0.9)";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(8, -14);
+          ctx.lineTo(11, -10);
+          ctx.moveTo(11, -14);
+          ctx.lineTo(8, -10);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = palette.accent;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(0, 0, 20, 0.6, 4.8);
