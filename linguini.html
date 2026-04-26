@@ -224,83 +224,8 @@ a:hover { text-decoration: underline; }
    ================================================================ */
 #app { display: flex; flex-direction: column; height: 100vh; }
 
-/* ------------ SETUP SCREEN ------------ */
-#setup-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  padding: 40px;
-  gap: 24px;
-  text-align: center;
-  background: var(--bg);
-}
-.setup-logo {
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: 48px;
-  font-weight: 400;
-  color: var(--accent);
-  letter-spacing: 0.04em;
-  line-height: 1;
-}
-.setup-subtitle {
-  font-size: 15px;
-  color: var(--text-muted);
-  max-width: 380px;
-  line-height: 1.7;
-}
-.setup-card {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 28px 32px;
-  width: 100%;
-  max-width: 460px;
-  box-shadow: var(--shadow-md);
-  text-align: left;
-}
-.setup-card label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
-.setup-card input { width: 100%; font-size: 14px; }
-.setup-hint { font-size: 12px; color: var(--text-faint); margin-top: 8px; line-height: 1.5; }
-.setup-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-}
-.setup-alt-btn {
-  flex: 1;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-panel-alt);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 600;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
-}
-.setup-alt-btn:hover {
-  background: var(--bg-panel);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-.setup-btn {
-  width: 100%;
-  margin-top: 20px;
-  padding: 13px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: var(--radius);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-  box-shadow: 0 2px 10px var(--accent-glow);
-}
-.setup-btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
-
 /* ------------ MAIN APP ------------ */
-#main-app { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+#main-app { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 #main-app.active { display: flex; }
 
 /* ------------ HEADER ------------ */
@@ -1113,26 +1038,6 @@ a:hover { text-decoration: underline; }
 <body>
 <div id="app">
 
-  <!-- ============ SETUP SCREEN ============ -->
-  <div id="setup-screen">
-    <div class="setup-logo">Linguini</div>
-    <p class="setup-subtitle">Translate books line by line and switch freely between your own files and a built-in sample library.</p>
-    <div class="setup-card">
-      <label for="setup-sample-book">Sample Book Library</label>
-      <div class="sample-picker">
-        <select id="setup-sample-book" onchange="syncSampleSelectors(this.value)">
-          <option value="">Choose a sample book...</option>
-        </select>
-        <button class="sample-open-btn" type="button" onclick="loadSelectedSampleBook('setup-sample-book')">Open</button>
-      </div>
-      <p class="setup-hint">Sample books live in the repository, while your own uploaded files stay only in your browser session.</p>
-      <div class="setup-actions">
-        <button class="setup-alt-btn" type="button" onclick="triggerUpload()">Upload Local .txt</button>
-      </div>
-      <button class="setup-btn" onclick="setupContinue()">Start -></button>
-    </div>
-  </div>
-
   <!-- ============ MAIN APP ============ -->
   <div id="main-app">
 
@@ -1541,26 +1446,12 @@ function boot() {
   syncHeaderLangs();
   updatePanelTitles();
   updateProgress();
-
-  const firstTime = !localStorage.getItem('lgcfg');
-  if (firstTime) {
-    showEl('setup-screen');
-    hideEl('main-app');
-  } else {
-    hideEl('setup-screen');
-    showEl('main-app', true);
-  }
+  showEl('main-app', true);
 
   setupDict();
   setupWordClick();
   setupKeyboard();
   setupModal();
-}
-
-function setupContinue() {
-  persistSettings();
-  hideEl('setup-screen');
-  showEl('main-app', true);
 }
 
 /* ================================================================
@@ -1571,7 +1462,7 @@ function triggerUpload() {
 }
 
 function populateSampleBookSelects() {
-  const selectIds = ['sample-book-select', 'setup-sample-book', 'empty-sample-book'];
+  const selectIds = ['sample-book-select', 'empty-sample-book'];
   const grouped = SAMPLE_BOOKS.reduce((acc, book) => {
     if (!acc[book.group]) acc[book.group] = [];
     acc[book.group].push(book);
@@ -1621,7 +1512,7 @@ function onFileChosen(e) {
 }
 
 function syncSampleSelectors(value) {
-  ['sample-book-select', 'setup-sample-book', 'empty-sample-book'].forEach(id => {
+  ['sample-book-select', 'empty-sample-book'].forEach(id => {
     const select = q(`#${id}`);
     if (select) select.value = value;
   });
@@ -1663,9 +1554,6 @@ async function loadSampleBook(path) {
     applySampleLanguageDefaults(sample.group);
     ingestBook(text, sample.title + '.txt');
     syncSampleSelectors(sample.path);
-    if (q('#setup-screen') && getComputedStyle(q('#setup-screen')).display !== 'none') {
-      setupContinue();
-    }
     toast(`Loaded sample: ${sample.title}`, 'ok');
   } catch (err) {
     toast('Could not open sample book: ' + err.message, 'err');
