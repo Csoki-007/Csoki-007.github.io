@@ -894,7 +894,7 @@ a:hover { text-decoration: underline; }
   padding: 12px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: #1C2A2F;
+  background: var(--bg-panel-alt);
   cursor: pointer;
   transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
@@ -909,7 +909,7 @@ a:hover { text-decoration: underline; }
 .theme-card.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-glow);
-  background: #1C2A2F;
+  background: var(--bg-panel);
 }
 .theme-card-row {
   display: flex;
@@ -920,7 +920,22 @@ a:hover { text-decoration: underline; }
 .theme-card strong {
   font-size: 12px;
   font-weight: 700;
+  color: var(--text);
+}
+.theme-card span {
+  color: var(--text-faint);
+}
+[data-theme="dark"] .theme-card {
+  background: #1C2A2F;
+}
+[data-theme="dark"] .theme-card.active {
+  background: #1C2A2F;
+}
+[data-theme="dark"] .theme-card strong {
   color: #F4F8F8;
+}
+[data-theme="dark"] .theme-card span {
+  color: #AAB7BA;
 }
 .theme-swatches {
   display: flex;
@@ -1414,6 +1429,8 @@ const SAMPLE_BOOKS = Array.isArray(window.SAMPLE_BOOKS) ? window.SAMPLE_BOOKS.ma
 const MAX_LINE_CHARS = 320;
 const MYMEMORY_SAFE_CHARS = 350;
 const AZURE_TTS_MONTHLY_CHAR_CAP = 500000;
+const UNLOCK_MIN_SCORE = 70;
+const ALLOW_CONTINUE_AFTER_CHECK = true;
 
 let dictTimer = null;
 let modalConfirmAction = null;
@@ -1600,6 +1617,41 @@ function clearCurrentBookState() {
   S.bookFingerprint = '';
 }
 
+function getLineWorkflowState(i) {
+  if (i > S.unlocked) return 'locked';
+  if (S.lineFeedbacks[i]) return 'checked';
+  if (S.revealed[i]) return 'revealed';
+  if (S.chosen[i]) return 'active';
+  return 'available';
+}
+
+function getPracticeDirection(i, sideOverride = null) {
+  if (i == null || i < 0 || i >= S.lines.length) return null;
+
+  const side = sideOverride || S.chosen[i] || S.currentSide || 'src';
+  const promptText = side === 'src' ? (S.lines[i] || '') : (S.translations[i] || '');
+  const expectedText = side === 'src' ? (S.translations[i] || '') : (S.lines[i] || '');
+  const fromLang = side === 'src' ? S.srcLang : S.tgtLang;
+  const toLang = side === 'src' ? S.tgtLang : S.srcLang;
+
+  return {
+    index: i,
+    side,
+    fromLang,
+    toLang,
+    promptText,
+    expectedText,
+    promptReady: !!promptText,
+    expectedReady: !!expectedText,
+    userAnswer: S.userDrafts[i] ?? S.userTrans[i] ?? ''
+  };
+}
+
+function shouldUnlockAfterCheck(result) {
+  const score = Number(result?.score || 0);
+  return ALLOW_CONTINUE_AFTER_CHECK || score >= UNLOCK_MIN_SCORE;
+}
+
 function ingestBook(text, name) {
   hideDict();
   stopSpeaking();
@@ -1634,8 +1686,8 @@ function ingestBook(text, name) {
       if (saved.side) S.currentSide = saved.side;
       if (saved.unlocked != null) S.unlocked = saved.unlocked;
       else S.unlocked = inferUnlockedLine(lines.length);
-      const restored = Object.keys(S.translations).length;
-      if (restored) toast(`Progress restored — ${restored} / ${lines.length} lines translated`, 'ok');
+      const restored = Object.keys(S.lineFeedbacks).length || Object.keys(S.translations).length;
+      if (restored) toast(`Progress restored — ${restored} / ${lines.length} lines checked`, 'ok');
     }
   } catch (_) {}
 
@@ -1796,7 +1848,7 @@ function ensureActiveLine() {
 
 function inferUnlockedLine(total) {
   let i = 0;
-  while (i < total && S.translations[i]) i++;
+  while (i < total && S.lineFeedbacks[i]) i++;
   return Math.min(i, Math.max(0, total - 1));
 }
 
@@ -1891,9 +1943,10 @@ function refreshTgtLine(i) {
 }
 
 function getLineItemClass(i, side) {
+  const state = getLineWorkflowState(i);
   return 'line-item'
     + (i === S.current ? ' active' : '')
-    + (S.revealed[i] ? ' done' : ' pending')
+    + ((state === 'revealed' || state === 'checked') ? ' done' : ' pending')
     + (!shouldShowSideText(i, side) ? ' locked' : '');
 }
 
@@ -1908,12 +1961,12 @@ function applyLineTextState(textEl, i, side) {
 
 function isPickerChecked(i, side) {
   if (!S.chosen[i]) return false;
-  if (S.revealed[i]) return true;
+  if (S.revealed[i] || S.lineFeedbacks[i]) return true;
   return S.chosen[i] === side;
 }
 
 function shouldShowSideText(i, side) {
-  if (S.revealed[i]) return true;
+  if (S.revealed[i] || S.lineFeedbacks[i]) return true;
   if (!S.chosen[i]) return false;
   return S.chosen[i] === side;
 }
@@ -2047,19 +2100,19 @@ function revealLine(i) {
     refreshSrcLine(i);
     refreshTgtLine(i);
     updateBottomBar(i);
-    revealNextLineIfReady(i);
     saveProgress();
   }
 }
 
 function updateBottomBar(i) {
-  const hasDirection = !!S.chosen[i];
+  const direction = getPracticeDirection(i);
   const input = q('#user-input');
-  const promptReady = hasDirection && (S.currentSide !== 'tgt' || !!S.translations[i]);
+  const promptReady = !!direction?.promptReady;
+  const referenceReady = !!direction?.expectedReady;
   const alreadyChecked = !!S.lineFeedbacks[i];
   input.disabled = !promptReady;
   input.value = promptReady ? (S.userDrafts[i] ?? S.userTrans[i] ?? '') : '';
-  q('#check-btn').disabled = alreadyChecked || !promptReady || !input.value.trim() || S.evalInFlight || Date.now() < S.evalCooldownUntil;
+  q('#check-btn').disabled = alreadyChecked || !promptReady || !referenceReady || !input.value.trim() || S.evalInFlight || Date.now() < S.evalCooldownUntil;
   renderStoredFeedback(i);
 }
 
@@ -2071,16 +2124,17 @@ function persistCurrentDraft() {
   if (value && value.trim()) S.userDrafts[S.current] = value;
   else delete S.userDrafts[S.current];
   saveProgress();
-  q('#check-btn').disabled = !!S.lineFeedbacks[S.current] || !value.trim() || S.evalInFlight || Date.now() < S.evalCooldownUntil;
+  const direction = getPracticeDirection(S.current);
+  q('#check-btn').disabled = !!S.lineFeedbacks[S.current] || !direction?.promptReady || !direction?.expectedReady || !value.trim() || S.evalInFlight || Date.now() < S.evalCooldownUntil;
 }
 
 function getReferenceTranslation(i) {
-  if (S.currentSide === 'tgt') return S.lines[i] || '';
-  return S.translations[i] || '';
+  return getPracticeDirection(i)?.expectedText || '';
 }
 
-function revealNextLineIfReady(i) {
-  if (i !== S.unlocked || !S.translations[i] || !S.revealed[i]) return;
+function unlockNextLineAfterCheck(i, result) {
+  if (i !== S.unlocked) return;
+  if (!shouldUnlockAfterCheck(result)) return;
   if (S.unlocked >= S.lines.length - 1) return;
   S.unlocked += 1;
   renderBook();
@@ -2094,7 +2148,8 @@ function scheduleCheckButtonRefresh() {
     const checkBtn = q('#check-btn');
     if (!input || !checkBtn) return;
     const alreadyChecked = S.current !== null && !!S.lineFeedbacks[S.current];
-    checkBtn.disabled = alreadyChecked || !input.value.trim() || S.evalInFlight || Date.now() < S.evalCooldownUntil;
+    const direction = S.current !== null ? getPracticeDirection(S.current) : null;
+    checkBtn.disabled = alreadyChecked || !direction?.promptReady || !direction?.expectedReady || !input.value.trim() || S.evalInFlight || Date.now() < S.evalCooldownUntil;
   }, wait + 20);
 }
 
@@ -2183,11 +2238,44 @@ function estimateTargetLanguageFit(text, targetCode) {
 
 function buildLanguageMismatchEvaluation(targetCode) {
   const targetName = LANGS[targetCode]?.name || 'target language';
+  const localized = {
+    EN: {
+      feedback: `Your answer is not in the requested target language. An ${targetName} translation was needed here.`,
+      keyIssues: 'wrong target language'
+    },
+    RU: {
+      feedback: `Ваш ответ не на нужном целевом языке. Здесь нужен был перевод на ${targetName}.`,
+      keyIssues: 'неверный целевой язык'
+    },
+    DE: {
+      feedback: `Deine Antwort ist nicht in der geforderten Zielsprache. Hier war eine ${targetName}-Uebersetzung noetig.`,
+      keyIssues: 'falsche Zielsprache'
+    },
+    FR: {
+      feedback: `Votre reponse n'est pas dans la langue cible demandee. Il fallait ici une traduction en ${targetName}.`,
+      keyIssues: 'mauvaise langue cible'
+    },
+    IT: {
+      feedback: `La tua risposta non e nella lingua di destinazione richiesta. Qui serviva una traduzione in ${targetName}.`,
+      keyIssues: 'lingua di destinazione errata'
+    },
+    ES: {
+      feedback: `Tu respuesta no esta en el idioma de destino solicitado. Aqui hacia falta una traduccion al ${targetName}.`,
+      keyIssues: 'idioma de destino incorrecto'
+    },
+    HU: {
+      feedback: `A valasz nem a megadott celnyelven van. Most ${targetName} nyelvu forditasra volt szukseg.`,
+      keyIssues: 'rossz celnyelv'
+    }
+  }[targetCode] || {
+    feedback: `Your answer is not in the requested target language. A ${targetName} translation was needed here.`,
+    keyIssues: 'wrong target language'
+  };
   return {
     score: 5,
-    feedback: `A válasz nem a megadott célnyelven van. Most ${targetName} nyelvű fordításra volt szükség.`,
+    feedback: localized.feedback,
     correctedTranslation: '',
-    keyIssues: 'rossz célnyelv',
+    keyIssues: localized.keyIssues,
     betterAlternative: '',
     confidence: 0.92
   };
@@ -2211,10 +2299,11 @@ function normalizeSuggestedAnswerLanguage(evaluation, reference, expectedLangCod
 }
 
 function buildEvaluationPrompt(i, userTranslation) {
-  const fromLang = S.currentSide === 'src' ? LANGS[S.srcLang].name : LANGS[S.tgtLang].name;
-  const toLang = S.currentSide === 'src' ? LANGS[S.tgtLang].name : LANGS[S.srcLang].name;
-  const original = S.currentSide === 'src' ? (S.lines[i] || '') : (S.translations[i] || '');
-  const reference = S.currentSide === 'src' ? (S.translations[i] || '') : (S.lines[i] || '');
+  const direction = getPracticeDirection(i);
+  const fromLang = LANGS[direction?.fromLang || S.srcLang].name;
+  const toLang = LANGS[direction?.toLang || S.tgtLang].name;
+  const original = direction?.promptText || '';
+  const reference = direction?.expectedText || '';
 
   return `You are a professional translation evaluator for a language learning application.
 
@@ -2415,7 +2504,6 @@ async function fetchTranslation(i, options = {}) {
       q('#deepl-comp').textContent = translation;
     }
     if (options.keepSelection && S.current === i) updateBottomBar(i);
-    revealNextLineIfReady(i);
   } catch (err) {
     refreshTgtLine(i);
     toast('Translation error: ' + err.message, 'err');
@@ -2438,7 +2526,8 @@ async function translateWord(text, fromLang, toLang) {
    ================================================================ */
 async function checkTranslation() {
   if (S.current === null) return;
-  if (S.currentSide === 'tgt' && !S.translations[S.current]) return;
+  const direction = getPracticeDirection(S.current);
+  if (!direction?.promptReady || !direction?.expectedReady) return;
   if (S.lineFeedbacks[S.current]) {
     renderStoredFeedback(S.current);
     q('#check-btn').disabled = true;
@@ -2454,11 +2543,11 @@ async function checkTranslation() {
   scheduleCheckButtonRefresh();
 
   const currentIndex = S.current;
-  const feedbackSourceLangCode = S.srcLang;
-  const feedbackTargetLangCode = S.tgtLang;
-  const expectedAnswerLangCode = S.currentSide === 'src' ? S.tgtLang : S.srcLang;
-  const original = S.currentSide === 'src' ? (S.lines[currentIndex] || '') : (S.translations[currentIndex] || '');
-  const reference = getReferenceTranslation(currentIndex);
+  const feedbackSourceLangCode = direction.fromLang;
+  const feedbackTargetLangCode = direction.toLang;
+  const expectedAnswerLangCode = direction.toLang;
+  const original = direction.promptText;
+  const reference = direction.expectedText;
 
   S.userDrafts[currentIndex] = userText;
   S.userTrans[currentIndex] = userText;
@@ -2471,26 +2560,9 @@ async function checkTranslation() {
   q('#deepl-comp').textContent = reference || '(reference not ready yet)';
 
   const targetFit = estimateTargetLanguageFit(userText, feedbackTargetLangCode);
-  if (targetFit < 0.2) {
-    const mismatchEvaluation = buildLanguageMismatchEvaluation(feedbackTargetLangCode);
-    renderEvaluationFeedback(mismatchEvaluation, false);
-    S.lineFeedbacks[currentIndex] = {
-      userText,
-      reference,
-      evaluation: mismatchEvaluation,
-      isFallback: false
-    };
-    saveProgress();
-    renderStoredFeedback(currentIndex);
-    revealNextLineIfReady(currentIndex);
-    S.evalInFlight = false;
-    q('#check-btn').disabled = true;
-    scheduleCheckButtonRefresh();
-    return;
-  }
-
-  const fallback = scoreTranslation(userText, reference);
-  const fallbackEvaluation = {
+  const mismatchEvaluation = targetFit < 0.2 ? buildLanguageMismatchEvaluation(feedbackTargetLangCode) : null;
+  const fallback = mismatchEvaluation ? null : scoreTranslation(userText, reference);
+  const fallbackEvaluation = mismatchEvaluation || {
     score: fallback.score,
     feedback: fallback.message,
     correctedTranslation: '',
@@ -2498,18 +2570,19 @@ async function checkTranslation() {
     betterAlternative: '',
     confidence: 0
   };
-  renderEvaluationFeedback(fallbackEvaluation, true);
+  renderEvaluationFeedback(fallbackEvaluation, !mismatchEvaluation);
   S.lineFeedbacks[currentIndex] = {
     userText,
     reference,
     evaluation: fallbackEvaluation,
-    isFallback: true
+    isFallback: !mismatchEvaluation
   };
   saveProgress();
   renderStoredFeedback(currentIndex);
-  revealNextLineIfReady(currentIndex);
+  unlockNextLineAfterCheck(currentIndex, fallbackEvaluation);
 
-  if (!shouldUseAiEvaluation(original, reference, userText, fallback)) {
+  const forceAiEvaluation = !!mismatchEvaluation;
+  if (!forceAiEvaluation && !shouldUseAiEvaluation(original, reference, userText, fallback)) {
     S.evalInFlight = false;
     q('#check-btn').disabled = true;
     scheduleCheckButtonRefresh();
@@ -2536,6 +2609,7 @@ async function checkTranslation() {
     };
     saveProgress();
     renderStoredFeedback(currentIndex);
+    unlockNextLineAfterCheck(currentIndex, normalizedEvaluation);
   } catch (error) {
     console.error('AI evaluation failed:', error);
     toast('AI evaluation is not available yet: ' + (error?.message || 'unknown error'), 'info');
@@ -2641,10 +2715,20 @@ function getInspectorSide(node) {
   return 'src';
 }
 
+function getLineItemFromNode(node) {
+  if (!node) return null;
+  if (node.nodeType === Node.ELEMENT_NODE) return node.closest?.('.line-item') || null;
+  return node.parentElement?.closest?.('.line-item') || null;
+}
+
+function getWordPanelContextFromSide(side) {
+  if (side === 'tgt') return { fromLang: S.tgtLang, toLang: S.srcLang, side };
+  return { fromLang: S.srcLang, toLang: S.tgtLang, side: 'src' };
+}
+
 function getWordPanelContext(node) {
   const side = getInspectorSide(node);
-  if (side === 'tgt') return { fromLang: S.tgtLang, toLang: S.srcLang, side };
-  return { fromLang: S.srcLang, toLang: S.tgtLang, side };
+  return getWordPanelContextFromSide(side);
 }
 
 function shouldPreservePracticeSide() {
@@ -2703,7 +2787,8 @@ function setupWordClick() {
     if (!hit) return;
     const line = lineText.closest('.line-item');
     if (line?.id) focusLineForInspector(line.id);
-    openWordInspector(hit.word, hit.rect, getWordPanelContext(lineText));
+    const side = line?.id?.startsWith('tl') ? 'tgt' : 'src';
+    openWordInspector(hit.word, hit.rect, getWordPanelContextFromSide(side));
   });
 }
 
@@ -2719,13 +2804,15 @@ function setupDict() {
     const range = sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
     const rect = getRangeAnchorRect(range);
     if (!range || !rect) return;
-    const line = e.target.closest('.line-item');
-    const contextTarget = e.target.closest('.line-text') || sel.anchorNode;
+    const rangeLine = getLineItemFromNode(range.commonAncestorContainer) || getLineItemFromNode(sel.anchorNode) || getLineItemFromNode(sel.focusNode);
+    const eventLine = e.target.closest('.line-item');
+    const line = eventLine || rangeLine;
+    const side = line?.id?.startsWith('tl') ? 'tgt' : 'src';
     clearTimeout(dictTimer);
     dictTimer = setTimeout(() => {
       suppressWordClickUntil = Date.now() + (isSentenceSelection ? 700 : 320);
       if (line?.id) focusLineForInspector(line.id);
-      openWordInspector(selectedText, rect, getWordPanelContext(contextTarget));
+      openWordInspector(selectedText, rect, getWordPanelContextFromSide(side));
     }, 180);
   });
 
@@ -3127,7 +3214,7 @@ function updateProgress() {
     return;
   }
 
-  const done = Object.keys(S.translations).length;
+  const done = Object.keys(S.lineFeedbacks).length;
   const total = S.lines.length;
   const pct = Math.round(done / total * 100);
   q('#progress-text').textContent = `${done} / ${total}`;
