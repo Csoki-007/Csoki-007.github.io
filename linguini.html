@@ -1436,6 +1436,7 @@ let dictTimer = null;
 let modalConfirmAction = null;
 let suppressWordClickUntil = 0;
 const AI_DEBUG = true;
+window.__linguiniAiDebug = window.__linguiniAiDebug || [];
 
 const FONT_URL_MAP = {
   'Lora': 'Lora:ital,wght@0,400;0,500;1,400',
@@ -2655,6 +2656,7 @@ async function callEvaluationProxy(payload) {
   }
 
   if (data?.ok && data?.stage === 'done' && typeof data?.result?.score === 'number') {
+    if (AI_DEBUG) console.log('[Linguini AI] proxy normalized result', data.result);
     return data.result;
   }
 
@@ -2858,8 +2860,9 @@ async function checkTranslation() {
     };
     if (AI_DEBUG) console.log('[Linguini AI] sending payload', evaluationPayload);
     const evaluation = await callEvaluationProxy(evaluationPayload);
+    if (AI_DEBUG) console.log('[Linguini AI] raw evaluation result', evaluation);
     const normalizedEvaluation = normalizeSuggestedAnswerLanguage(evaluation, reference, expectedAnswerLangCode);
-    console.log('[Linguini AI] evaluation success', normalizedEvaluation);
+    if (AI_DEBUG) console.log('[Linguini AI] normalized evaluation result', normalizedEvaluation);
     S.lineFeedbacks[currentIndex] = {
       userText,
       reference,
@@ -2870,6 +2873,18 @@ async function checkTranslation() {
     saveProgress();
     if (S.current === currentIndex) renderStoredFeedback(currentIndex);
     unlockNextLineAfterCheck(currentIndex, normalizedEvaluation);
+    if (AI_DEBUG) {
+      const snapshot = {
+        at: new Date().toISOString(),
+        line: currentIndex,
+        payload: evaluationPayload,
+        raw: evaluation,
+        normalized: normalizedEvaluation,
+        status: 'success'
+      };
+      window.__linguiniAiDebug.push(snapshot);
+      console.log('[Linguini AI] stored debug snapshot', snapshot);
+    }
   } catch (error) {
     console.error('[Linguini AI] evaluation failed', {
       error,
@@ -2879,6 +2894,20 @@ async function checkTranslation() {
       reference,
       userText
     });
+    if (AI_DEBUG) {
+      const snapshot = {
+        at: new Date().toISOString(),
+        line: currentIndex,
+        original,
+        reference,
+        userText,
+        message: error?.message || 'unknown error',
+        error,
+        status: 'failed'
+      };
+      window.__linguiniAiDebug.push(snapshot);
+      console.log('[Linguini AI] stored debug snapshot', snapshot);
+    }
     S.lineFeedbacks[currentIndex] = {
       userText,
       reference,
