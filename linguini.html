@@ -2056,6 +2056,12 @@ function resetBottomBar() {
   q('#comparison-bar').classList.remove('show');
 }
 
+function getStoredFeedbackMode(entry) {
+  if (!entry) return 'local';
+  if (entry.mode) return entry.mode;
+  return entry.isFallback ? 'fallback' : 'ai';
+}
+
 function renderStoredFeedback(i) {
   const entry = S.lineFeedbacks[i];
   if (!entry) {
@@ -2071,7 +2077,7 @@ function renderStoredFeedback(i) {
     keyIssues: '',
     betterAlternative: '',
     confidence: 0
-  }, !!entry.isFallback);
+  }, getStoredFeedbackMode(entry));
   q('#comparison-bar').classList.add('show');
 }
 
@@ -2241,15 +2247,8 @@ function scoreTranslation(userText, referenceText) {
 }
 
 function shouldUseAiEvaluation(original, reference, userText, fallback) {
-  if (!S.proxyUrl || !reference) return false;
-  const refTokens = tokenizeForScore(reference);
-  const userTokens = tokenizeForScore(userText);
-  const shortSimpleLine = reference.length <= 80 && refTokens.length <= 8;
-  const veryClose = fallback.score >= 90;
   const exactEnough = normalizeForComparison(userText) === normalizeForComparison(reference);
-  if (shortSimpleLine && (veryClose || exactEnough)) return false;
-  if (userTokens.length <= 3 && refTokens.length <= 3 && fallback.score >= 85) return false;
-  return true;
+  return !!S.proxyUrl && !!original && !!reference && !exactEnough;
 }
 
 function normalizeForComparison(text) {
@@ -2447,14 +2446,23 @@ function escapePromptString(text) {
    ================================================================ */
 async function callTranslation(text, fromLang, toLang) {
   const normalizedText = normalizeLineSpacing(text);
-  try {
-    if (normalizedText.length > MYMEMORY_SAFE_CHARS && S.proxyUrl) {
+  if (S.proxyUrl) {
+    try {
       return await callDeepLProxyTranslation(normalizedText, fromLang, toLang);
+    } catch (proxyError) {
+      if (normalizedText.length > MYMEMORY_SAFE_CHARS) throw proxyError;
     }
+  }
+
+  try {
     return await callMyMemoryTranslation(normalizedText, fromLang, toLang);
   } catch (freeError) {
     if (!S.proxyUrl) throw freeError;
-    return callDeepLProxyTranslation(normalizedText, fromLang, toLang);
+    try {
+      return await callDeepLProxyTranslation(normalizedText, fromLang, toLang);
+    } catch (_) {
+      throw freeError;
+    }
   }
 }
 
@@ -2632,19 +2640,21 @@ async function checkTranslation() {
     betterAlternative: '',
     confidence: 0
   };
-  renderEvaluationFeedback(fallbackEvaluation, !mismatchEvaluation);
+  const shouldTryAi = !mismatchEvaluation && shouldUseAiEvaluation(original, reference, userText, fallback);
+  const provisionalMode = shouldTryAi ? 'pending' : 'local';
+
   S.lineFeedbacks[currentIndex] = {
     userText,
     reference,
     evaluation: fallbackEvaluation,
-    isFallback: !mismatchEvaluation
+    isFallback: !shouldTryAi,
+    mode: provisionalMode
   };
   saveProgress();
   renderStoredFeedback(currentIndex);
   unlockNextLineAfterCheck(currentIndex, fallbackEvaluation);
 
-  const forceAiEvaluation = !!mismatchEvaluation;
-  if (!forceAiEvaluation && !shouldUseAiEvaluation(original, reference, userText, fallback)) {
+  if (!shouldTryAi) {
     S.evalInFlight = false;
     q('#check-btn').disabled = true;
     scheduleCheckButtonRefresh();
@@ -2659,22 +2669,29 @@ async function checkTranslation() {
       reference,
       userTranslation: userText
     });
-    if (S.current !== currentIndex) return;
     const normalizedEvaluation = normalizeSuggestedAnswerLanguage(evaluation, reference, expectedAnswerLangCode);
     console.log('AI evaluation success:', normalizedEvaluation);
-    renderEvaluationFeedback(normalizedEvaluation, false);
     S.lineFeedbacks[currentIndex] = {
       userText,
       reference,
       evaluation: normalizedEvaluation,
-      isFallback: false
+      isFallback: false,
+      mode: 'ai'
     };
     saveProgress();
-    renderStoredFeedback(currentIndex);
+    if (S.current === currentIndex) renderStoredFeedback(currentIndex);
     unlockNextLineAfterCheck(currentIndex, normalizedEvaluation);
   } catch (error) {
     console.error('AI evaluation failed:', error);
-    toast('AI evaluation is not available yet: ' + (error?.message || 'unknown error'), 'info');
+    S.lineFeedbacks[currentIndex] = {
+      userText,
+      reference,
+      evaluation: fallbackEvaluation,
+      isFallback: true,
+      mode: 'fallback'
+    };
+    saveProgress();
+    if (S.current === currentIndex) renderStoredFeedback(currentIndex);
   } finally {
     S.evalInFlight = false;
     q('#check-btn').disabled = true;
@@ -2682,10 +2699,10 @@ async function checkTranslation() {
   }
 }
 
-function renderEvaluationFeedback(result, isFallback) {
+function renderEvaluationFeedback(result, mode = 'local') {
   const score = Number.isFinite(Number(result?.score)) ? Math.round(Number(result.score)) : 0;
   const confidence = Number(result?.confidence || 0);
-  const badge = getFeedbackBadge(confidence, isFallback);
+  const badge = getFeedbackBadge(confidence, mode);
   q('#feedback-score').innerHTML = badge
     ? `${score}% <small class="${badge.kind}">${escapeHtml(badge.label)}</small>`
     : `${score}%`;
@@ -2695,8 +2712,10 @@ function renderEvaluationFeedback(result, isFallback) {
   if (result?.keyIssues) blocks.push(makeFeedbackCard('Key Issues', result.keyIssues));
   if (result?.correctedTranslation) blocks.push(makeFeedbackCard('Corrected', result.correctedTranslation));
   if (result?.betterAlternative) blocks.push(makeFeedbackCard('Better Alternative', result.betterAlternative));
-  if (isFallback && score < 100 && !result?.keyIssues && !result?.correctedTranslation && !result?.betterAlternative) {
-    blocks.push(makeFeedbackCard('Status', 'Detailed AI evaluation is not available yet.'));
+  if (mode === 'pending') {
+    blocks.push(makeFeedbackCard('Status', 'Checking with AI for a more precise evaluation...'));
+  } else if (mode === 'fallback' && score < 100) {
+    blocks.push(makeFeedbackCard('Status', 'AI was unavailable for this line, so this is a quick fallback check.'));
   }
 
   q('#feedback-text').innerHTML = blocks.join('');
@@ -2706,8 +2725,9 @@ function makeFeedbackCard(label, text) {
   return `<div class="feedback-card"><strong>${escapeHtml(label)}</strong>${escapeHtml(text)}</div>`;
 }
 
-function getFeedbackBadge(confidence, isFallback) {
-  if (isFallback) return { label: 'Quick check', kind: '' };
+function getFeedbackBadge(confidence, mode) {
+  if (mode === 'pending') return { label: 'AI checking...', kind: 'is-caution' };
+  if (mode === 'fallback' || mode === 'local') return { label: 'Quick check', kind: '' };
   if (!confidence || confidence >= 0.65) return { label: 'AI checked', kind: 'is-ai' };
   return { label: 'AI uncertain', kind: 'is-caution' };
 }
@@ -2783,6 +2803,12 @@ function getLineItemFromNode(node) {
   return node.parentElement?.closest?.('.line-item') || null;
 }
 
+function getPanelBodyFromNode(node) {
+  if (!node) return null;
+  if (node.nodeType === Node.ELEMENT_NODE) return node.closest?.('.panel-body') || null;
+  return node.parentElement?.closest?.('.panel-body') || null;
+}
+
 function getWordPanelContextFromSide(side) {
   if (side === 'tgt') return { fromLang: S.tgtLang, toLang: S.srcLang, side };
   return { fromLang: S.srcLang, toLang: S.tgtLang, side: 'src' };
@@ -2842,6 +2868,7 @@ function setupWordClick() {
     if (Date.now() < suppressWordClickUntil) return;
     if (e.target.closest('#dict-popup')) return;
     if (e.target.closest('#user-input')) return;
+    if (!e.target.closest('.panel-body')) return;
     const lineText = e.target.closest('.line-text');
     if (!lineText) return;
     if (lineText.dataset.dictionary === 'off') return;
@@ -2857,6 +2884,7 @@ function setupWordClick() {
 function setupDict() {
   document.addEventListener('mouseup', e => {
     if (e.target.closest('#dict-popup')) return;
+    if (!e.target.closest('.panel-body')) return;
     if (e.target.closest('.line-text')?.dataset.dictionary === 'off') return;
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) return;
@@ -2866,6 +2894,8 @@ function setupDict() {
     const range = sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
     const rect = getRangeAnchorRect(range);
     if (!range || !rect) return;
+    const rangePanel = getPanelBodyFromNode(range.commonAncestorContainer) || getPanelBodyFromNode(sel.anchorNode) || getPanelBodyFromNode(sel.focusNode);
+    if (!rangePanel) return;
     const rangeLine = getLineItemFromNode(range.commonAncestorContainer) || getLineItemFromNode(sel.anchorNode) || getLineItemFromNode(sel.focusNode);
     const eventLine = e.target.closest('.line-item');
     const line = eventLine || rangeLine;
@@ -3206,7 +3236,8 @@ function setupKeyboard() {
   input.addEventListener('input', () => {
     persistCurrentDraft();
     const currentChecked = S.current !== null && !!S.lineFeedbacks[S.current];
-    q('#check-btn').disabled = currentChecked || !input.value.trim() || S.evalInFlight || Date.now() < S.evalCooldownUntil;
+    const direction = S.current !== null ? getPracticeDirection(S.current) : null;
+    q('#check-btn').disabled = currentChecked || !direction?.promptReady || !direction?.expectedReady || !input.value.trim() || S.evalInFlight || Date.now() < S.evalCooldownUntil;
   });
   input.addEventListener('blur', () => {
     persistCurrentDraft();
