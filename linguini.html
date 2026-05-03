@@ -1746,7 +1746,7 @@ function ingestBook(text, name) {
 }
 
 function buildReadableLines(text) {
-  const rawLines = String(text || '').split(/\r?\n/);
+  const rawLines = mergeBrokenBookLines(String(text || '').split(/\r?\n/));
   const lines = [];
 
   rawLines.forEach(rawLine => {
@@ -1768,11 +1768,68 @@ function normalizeLineSpacing(text) {
   return String(text || '').replace(/\s+/g, ' ').trim();
 }
 
+function mergeBrokenBookLines(rawLines) {
+  const merged = [];
+  let current = '';
+
+  rawLines.forEach(rawLine => {
+    const normalized = normalizeLineSpacing(rawLine);
+    if (!normalized) {
+      if (current) {
+        merged.push(current);
+        current = '';
+      }
+      return;
+    }
+
+    if (!current) {
+      current = normalized;
+      return;
+    }
+
+    if (shouldMergeBookLines(current, normalized)) {
+      current = normalizeLineSpacing(`${current} ${normalized}`);
+    } else {
+      merged.push(current);
+      current = normalized;
+    }
+  });
+
+  if (current) merged.push(current);
+  return merged;
+}
+
+function shouldMergeBookLines(previousLine, nextLine) {
+  const prev = normalizeLineSpacing(previousLine);
+  const next = normalizeLineSpacing(nextLine);
+  if (!prev || !next) return false;
+
+  const prevTerminal = /[.!?]["'”’)\]]*$/.test(prev);
+  const prevSoftContinuation = /[,:;—–-]["'”’)\]]*$/.test(prev);
+  const prevOpenTail = /(?:\(|\[|\{|"|'|“|‘)\s*$/.test(prev);
+  const prevHasOddQuotes = countLooseQuotes(prev) % 2 === 1;
+  const nextStartsLower = /^[a-záéíóöőúüűàâæçèéêëìíîïñòóôœùúûüÿß]/i.test(next) && next[0] === next[0].toLowerCase();
+  const nextStartsLikeContinuation = /^(and|or|but|because|that|which|who|whom|whose|where|when|while|to|of|for|with|without|from|into|onto|over|under|except|than|then|so|as|if|though|although|however|yet|whose|whilst)\b/i.test(next);
+  const prevLooksFragmentary = prev.length < 90 && !prevTerminal;
+  const combinedLength = `${prev} ${next}`.length;
+
+  if (combinedLength > MAX_LINE_CHARS * 1.35) return false;
+  if (prevSoftContinuation || prevOpenTail || prevHasOddQuotes) return true;
+  if (nextStartsLower || nextStartsLikeContinuation) return true;
+  if (prevLooksFragmentary && !/^[A-ZÁÉÍÓÖŐÚÜŰА-ЯЁ]/.test(next)) return true;
+  return !prevTerminal && prev.length < 70;
+}
+
+function countLooseQuotes(text) {
+  const matches = String(text || '').match(/["'“”‘’]/g);
+  return matches ? matches.length : 0;
+}
+
 function splitLongLine(text) {
   const clean = normalizeLineSpacing(text);
   if (!clean) return [];
 
-  const sentences = clean.match(/[^.!?;:]+[.!?;:]*(?:\s+|$)/g) || [clean];
+  const sentences = clean.match(/[^.!?]+[.!?]*(?:["'”’)\]]*)?(?:\s+|$)/g) || [clean];
   const chunks = [];
   let current = '';
 
