@@ -1435,6 +1435,7 @@ const ALLOW_CONTINUE_AFTER_CHECK = true;
 let dictTimer = null;
 let modalConfirmAction = null;
 let suppressWordClickUntil = 0;
+const AI_DEBUG = true;
 
 const FONT_URL_MAP = {
   'Lora': 'Lora:ital,wght@0,400;0,500;1,400',
@@ -2621,43 +2622,43 @@ async function callDeepLProxyTranslation(text, fromLang, toLang, context = '') {
 
 async function callEvaluationProxy(payload) {
   if (!S.proxyUrl) throw new Error('Evaluation proxy URL is not configured.');
+  if (AI_DEBUG) {
+    console.groupCollapsed('[Linguini AI] evaluate request');
+    console.log('proxyUrl', S.proxyUrl);
+    console.log('payload', payload);
+    console.groupEnd();
+  }
+  const res = await fetch(S.proxyUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'debug_evaluate',
+      ...payload
+    })
+  });
 
-  const runAction = async action => {
-    const res = await fetch(S.proxyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        ...payload
-      })
-    });
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (_) {}
 
-    let data = null;
-    try {
-      data = await res.json();
-    } catch (_) {}
-
-    return { res, data };
-  };
-
-  const primary = await runAction('evaluate');
-  if (primary.res.ok && primary.data && typeof primary.data.score === 'number') {
-    return primary.data;
+  if (AI_DEBUG) {
+    console.groupCollapsed('[Linguini AI] evaluate response');
+    console.log('status', res.status);
+    console.log('ok', res.ok);
+    console.log('body', data);
+    console.groupEnd();
   }
 
-  const debugFallback = await runAction('debug_evaluate');
-  if (debugFallback.res.ok && debugFallback.data?.ok && debugFallback.data?.stage === 'done' && typeof debugFallback.data?.result?.score === 'number') {
-    console.warn('Evaluation fallbacked through debug_evaluate for payload:', payload);
-    return debugFallback.data.result;
+  if (!res.ok) {
+    throw new Error(data?.error || data?.error_message || data?.error_code || `Evaluation HTTP ${res.status}`);
   }
 
-  throw new Error(
-    primary.data?.error ||
-    primary.data?.error_message ||
-    primary.data?.error_code ||
-    debugFallback.data?.error ||
-    `Evaluation HTTP ${primary.res.status}`
-  );
+  if (data?.ok && data?.stage === 'done' && typeof data?.result?.score === 'number') {
+    return data.result;
+  }
+
+  throw new Error(data?.error || 'Evaluation proxy did not return a valid result.');
 }
 
 async function callWordLookupProxy(word, fromLang, toLang) {
@@ -2785,6 +2786,16 @@ async function checkTranslation() {
   const original = direction.promptText;
   const reference = direction.expectedText;
 
+  if (AI_DEBUG) {
+    console.groupCollapsed('[Linguini AI] check start');
+    console.log('currentIndex', currentIndex);
+    console.log('direction', direction);
+    console.log('original', original);
+    console.log('reference', reference);
+    console.log('userText', userText);
+    console.groupEnd();
+  }
+
   S.userDrafts[currentIndex] = userText;
   S.userTrans[currentIndex] = userText;
   S.revealed[currentIndex] = true;
@@ -2809,6 +2820,16 @@ async function checkTranslation() {
   const shouldTryAi = !mismatchEvaluation && shouldUseAiEvaluation(original, reference, userText, fallback);
   const provisionalMode = shouldTryAi ? 'pending' : 'local';
 
+  if (AI_DEBUG) {
+    console.groupCollapsed('[Linguini AI] check decision');
+    console.log('targetFit', targetFit);
+    console.log('mismatchEvaluation', mismatchEvaluation);
+    console.log('fallback', fallback);
+    console.log('fallbackEvaluation', fallbackEvaluation);
+    console.log('shouldTryAi', shouldTryAi);
+    console.groupEnd();
+  }
+
   S.lineFeedbacks[currentIndex] = {
     userText,
     reference,
@@ -2828,15 +2849,17 @@ async function checkTranslation() {
   }
 
   try {
-    const evaluation = await callEvaluationProxy({
+    const evaluationPayload = {
       sourceLang: LANGS[feedbackSourceLangCode].name,
       targetLang: LANGS[feedbackTargetLangCode].name,
       original,
       reference,
       userTranslation: userText
-    });
+    };
+    if (AI_DEBUG) console.log('[Linguini AI] sending payload', evaluationPayload);
+    const evaluation = await callEvaluationProxy(evaluationPayload);
     const normalizedEvaluation = normalizeSuggestedAnswerLanguage(evaluation, reference, expectedAnswerLangCode);
-    console.log('AI evaluation success:', normalizedEvaluation);
+    console.log('[Linguini AI] evaluation success', normalizedEvaluation);
     S.lineFeedbacks[currentIndex] = {
       userText,
       reference,
@@ -2848,7 +2871,14 @@ async function checkTranslation() {
     if (S.current === currentIndex) renderStoredFeedback(currentIndex);
     unlockNextLineAfterCheck(currentIndex, normalizedEvaluation);
   } catch (error) {
-    console.error('AI evaluation failed:', error);
+    console.error('[Linguini AI] evaluation failed', {
+      error,
+      message: error?.message,
+      currentIndex,
+      original,
+      reference,
+      userText
+    });
     S.lineFeedbacks[currentIndex] = {
       userText,
       reference,
