@@ -2273,7 +2273,9 @@ function scoreTranslation(userText, referenceText) {
     return { score: 0, message: 'Reference translation is not ready yet.', exact: false };
   }
 
-  const exactEnough = normalizeForComparison(userText) === normalizeForComparison(referenceText);
+  const normalizedUser = normalizeForComparison(userText);
+  const normalizedReference = normalizeForComparison(referenceText);
+  const exactEnough = normalizedUser === normalizedReference;
   if (exactEnough) {
     return {
       score: 100,
@@ -2288,19 +2290,66 @@ function scoreTranslation(userText, referenceText) {
     return { score: 0, message: 'Type a fuller answer to get useful feedback.', exact: false };
   }
 
-  const overlap = userWords.filter(word => refWords.includes(word)).length;
-  const precision = overlap / userWords.length;
-  const recall = overlap / refWords.length;
+  const precision = softTokenMatchRatio(userWords, refWords);
+  const recall = softTokenMatchRatio(refWords, userWords);
   const lengthRatio = Math.min(userWords.length, refWords.length) / Math.max(userWords.length, refWords.length);
-  const score = Math.round(((precision * 0.45) + (recall * 0.45) + (lengthRatio * 0.10)) * 100);
+  const phraseSimilarity = normalizedSimilarity(normalizedUser, normalizedReference);
+  const score = Math.round(((precision * 0.32) + (recall * 0.32) + (lengthRatio * 0.08) + (phraseSimilarity * 0.28)) * 100);
 
   let message = 'Good structure. Compare the wording with the reference.';
-  if (score >= 85) message = 'Very close. Mostly wording-level differences.';
+  if (score >= 92) message = 'Excellent. Very close to the expected answer.';
+  else if (score >= 85) message = 'Very close. Mostly wording-level differences.';
   else if (score >= 65) message = 'Solid attempt. Check missing words and word order.';
   else if (score >= 40) message = 'Partly correct. Revisit the main meaning and key vocabulary.';
   else message = 'This differs a lot from the reference. Start with the core meaning first.';
 
   return { score, message, exact: false };
+}
+
+function softTokenMatchRatio(sourceTokens, targetTokens) {
+  if (!sourceTokens.length || !targetTokens.length) return 0;
+  let total = 0;
+  sourceTokens.forEach(token => {
+    let best = 0;
+    targetTokens.forEach(candidate => {
+      const similarity = token === candidate ? 1 : normalizedSimilarity(token, candidate);
+      if (similarity > best) best = similarity;
+    });
+    total += best >= 0.72 ? best : 0;
+  });
+  return total / sourceTokens.length;
+}
+
+function normalizedSimilarity(a, b) {
+  const left = String(a || '');
+  const right = String(b || '');
+  if (!left && !right) return 1;
+  if (!left || !right) return 0;
+  if (left === right) return 1;
+  const distance = levenshteinDistance(left, right);
+  return Math.max(0, 1 - (distance / Math.max(left.length, right.length)));
+}
+
+function levenshteinDistance(a, b) {
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const matrix = Array.from({ length: rows }, (_, i) => Array(cols).fill(0));
+
+  for (let i = 0; i < rows; i += 1) matrix[i][0] = i;
+  for (let j = 0; j < cols; j += 1) matrix[0][j] = j;
+
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  return matrix[a.length][b.length];
 }
 
 function shouldUseAiEvaluation(original, reference, userText, fallback) {
@@ -2501,11 +2550,12 @@ function escapePromptString(text) {
 /* ================================================================
    TRANSLATION
    ================================================================ */
-async function callTranslation(text, fromLang, toLang) {
+async function callTranslation(text, fromLang, toLang, rawContext = '') {
   const normalizedText = normalizeLineSpacing(text);
+  const context = normalizeTranslationContext(rawContext);
   if (S.proxyUrl) {
     try {
-      return await callDeepLProxyTranslation(normalizedText, fromLang, toLang);
+      return await callDeepLProxyTranslation(normalizedText, fromLang, toLang, context);
     } catch (proxyError) {
       if (normalizedText.length > MYMEMORY_SAFE_CHARS) throw proxyError;
     }
@@ -2516,14 +2566,29 @@ async function callTranslation(text, fromLang, toLang) {
   } catch (freeError) {
     if (!S.proxyUrl) throw freeError;
     try {
-      return await callDeepLProxyTranslation(normalizedText, fromLang, toLang);
+      return await callDeepLProxyTranslation(normalizedText, fromLang, toLang, context);
     } catch (_) {
       throw freeError;
     }
   }
 }
 
-async function callDeepLProxyTranslation(text, fromLang, toLang) {
+function normalizeTranslationContext(context) {
+  return String(context || '').replace(/\s+/g, ' ').trim().slice(0, 1800);
+}
+
+function getLineTranslationContext(i) {
+  const windowLines = [];
+  const prev = normalizeLineSpacing(S.lines[i - 1] || '');
+  const current = normalizeLineSpacing(S.lines[i] || '');
+  const next = normalizeLineSpacing(S.lines[i + 1] || '');
+  if (prev) windowLines.push(prev);
+  if (current) windowLines.push(current);
+  if (next) windowLines.push(next);
+  return normalizeTranslationContext(windowLines.join(' '));
+}
+
+async function callDeepLProxyTranslation(text, fromLang, toLang, context = '') {
   if (!S.proxyUrl) throw new Error('DeepL proxy URL is not configured.');
 
   const res = await fetch(S.proxyUrl, {
@@ -2532,6 +2597,7 @@ async function callDeepLProxyTranslation(text, fromLang, toLang) {
     body: JSON.stringify({
       action: 'translate',
       text,
+      context,
       source_lang: fromLang,
       target_lang: toLang
     })
@@ -2581,6 +2647,36 @@ async function callEvaluationProxy(payload) {
   return data;
 }
 
+async function callWordLookupProxy(word, fromLang, toLang) {
+  if (!S.proxyUrl) throw new Error('Word lookup proxy URL is not configured.');
+
+  const res = await fetch(S.proxyUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'lookup',
+      word,
+      sourceLang: LANGS[fromLang].name,
+      targetLang: LANGS[toLang].name
+    })
+  });
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (_) {}
+
+  if (!res.ok) {
+    throw new Error(data?.error || `Lookup HTTP ${res.status}`);
+  }
+
+  if (!data || typeof data.translation !== 'string') {
+    throw new Error('Lookup proxy did not return a valid result.');
+  }
+
+  return data;
+}
+
 function isUnusableMyMemoryTranslation(sourceText, translatedText, fromLang, toLang) {
   const source = String(sourceText || '').trim();
   const translated = String(translatedText || '').trim();
@@ -2619,7 +2715,7 @@ async function fetchTranslation(i, options = {}) {
 
   setLineTranslating(i, true);
   try {
-    const translation = await callTranslation(text, S.srcLang, S.tgtLang);
+    const translation = await callTranslation(text, S.srcLang, S.tgtLang, getLineTranslationContext(i));
     S.translations[i] = translation;
     if (options.revealWhenDone) S.revealed[i] = true;
     refreshSrcLine(i);
@@ -2642,7 +2738,7 @@ async function fetchTranslation(i, options = {}) {
 
 async function translateWord(text, fromLang, toLang) {
   try {
-    return await callTranslation(text, fromLang, toLang);
+    return await callTranslation(text, fromLang, toLang, '');
   } catch (_) {
     return '';
   }
@@ -3118,11 +3214,18 @@ async function showDict(word, rect, ctx) {
     q('#dict-scroll').style.display = 'none';
     return;
   }
-  const translated = await translateWord(word, ctx.fromLang, ctx.toLang);
-  if (S.dictWord === word && S.dictLangFrom === ctx.fromLang && S.dictLangTo === ctx.toLang) {
-    q('#dict-translation-text').textContent = translated || 'No translation found.';
+  try {
+    const lookup = await callWordLookupProxy(word, ctx.fromLang, ctx.toLang);
+    if (S.dictWord === word && S.dictLangFrom === ctx.fromLang && S.dictLangTo === ctx.toLang) {
+      renderAiLookupResult(lookup);
+    }
+  } catch (_) {
+    const translated = await translateWord(word, ctx.fromLang, ctx.toLang);
+    if (S.dictWord === word && S.dictLangFrom === ctx.fromLang && S.dictLangTo === ctx.toLang) {
+      q('#dict-translation-text').textContent = translated || 'No translation found.';
+    }
+    lookupWord(word, ctx, translated);
   }
-  lookupWord(word, ctx, translated);
 }
 
 function hideDict() {
@@ -3135,6 +3238,43 @@ function setDictVoiceStatus(text, kind = 'muted') {
   if (!el) return;
   el.textContent = text;
   el.className = `dict-tag ${kind || 'muted'}`.trim();
+}
+
+function renderAiLookupResult(lookup) {
+  const scroll = q('#dict-scroll');
+  const phonetic = q('#dict-phonetic');
+  phonetic.textContent = lookup?.phonetic || '';
+  S.dictAudioUrl = '';
+  q('#dict-translation-text').textContent = lookup?.translation || 'No translation found.';
+  scroll.innerHTML = '';
+
+  if (lookup?.partOfSpeech) {
+    const pos = document.createElement('div');
+    pos.className = 'dict-pos';
+    pos.textContent = lookup.partOfSpeech;
+    scroll.appendChild(pos);
+  }
+
+  if (lookup?.definition) {
+    const def = document.createElement('div');
+    def.className = 'dict-def';
+    def.textContent = lookup.definition;
+    scroll.appendChild(def);
+  }
+
+  if (lookup?.note) {
+    const note = document.createElement('div');
+    note.className = 'dict-note';
+    note.textContent = lookup.note;
+    scroll.appendChild(note);
+  }
+
+  appendWordList(scroll, 'Synonyms', lookup?.synonyms || []);
+  appendWordList(scroll, 'Antonyms', lookup?.antonyms || []);
+
+  if (!scroll.innerHTML.trim()) {
+    scroll.innerHTML = '<div class="dict-msg">No extra notes for this word yet.</div>';
+  }
 }
 
 function getTtsLanguageForCode(code) {
