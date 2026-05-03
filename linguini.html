@@ -1425,7 +1425,7 @@ const SAMPLE_GROUP_LANG = {
   'Spanish Books': 'ES',
 };
 
-const SAMPLE_BOOKS = Array.isArray(window.SAMPLE_BOOKS) ? window.SAMPLE_BOOKS.map(normalizeSampleBookRecord) : [];
+let SAMPLE_BOOKS = Array.isArray(window.SAMPLE_BOOKS) ? window.SAMPLE_BOOKS.map(normalizeSampleBookRecord) : [];
 const MAX_LINE_CHARS = 320;
 const MYMEMORY_SAFE_CHARS = 350;
 const AZURE_TTS_MONTHLY_CHAR_CAP = 500000;
@@ -1451,8 +1451,9 @@ const FONT_URL_MAP = {
 /* ================================================================
    BOOT
    ================================================================ */
-function boot() {
+async function boot() {
   loadSettings();
+  await ensureSampleBooksLoaded();
   populateLanguageSelects();
   populateSampleBookSelects();
   renderEmptyState();
@@ -1469,6 +1470,23 @@ function boot() {
   setupWordClick();
   setupKeyboard();
   setupModal();
+}
+
+async function ensureSampleBooksLoaded() {
+  if (Array.isArray(SAMPLE_BOOKS) && SAMPLE_BOOKS.length) return;
+
+  try {
+    const res = await fetch('sample-books.js', { cache: 'no-store' });
+    if (!res.ok) return;
+    const raw = await res.text();
+    const match = raw.match(/window\.SAMPLE_BOOKS\s*=\s*(\[[\s\S]*\])\s*;?\s*$/);
+    if (!match) return;
+    const parsed = JSON.parse(match[1]);
+    if (Array.isArray(parsed) && parsed.length) {
+      SAMPLE_BOOKS = parsed.map(normalizeSampleBookRecord);
+      window.SAMPLE_BOOKS = parsed;
+    }
+  } catch (_) {}
 }
 
 /* ================================================================
@@ -1563,10 +1581,7 @@ async function loadSampleBook(path) {
   try {
     let text = sample.content || '';
     if (!text) {
-      const normalizedPath = normalizeBookPath(sample.path);
-      const res = await fetch(normalizedPath);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      text = await res.text();
+      text = await fetchSampleBookText(sample.path);
     }
     applySampleLanguageDefaults(sample.group);
     ingestBook(text, sample.title + '.txt');
@@ -1575,6 +1590,32 @@ async function loadSampleBook(path) {
   } catch (err) {
     toast('Could not open sample book: ' + err.message, 'err');
   }
+}
+
+async function fetchSampleBookText(path) {
+  const normalizedPath = normalizeBookPath(path);
+  const candidates = [
+    normalizedPath,
+    `./${normalizedPath}`,
+    new URL(normalizedPath, window.location.href).toString(),
+    new URL(`./${normalizedPath}`, window.location.href).toString()
+  ];
+
+  let lastError = 'HTTP 404';
+  for (const candidate of [...new Set(candidates)]) {
+    try {
+      const res = await fetch(candidate, { cache: 'no-store' });
+      if (!res.ok) {
+        lastError = `HTTP ${res.status} at ${candidate}`;
+        continue;
+      }
+      return await res.text();
+    } catch (error) {
+      lastError = `${error?.message || 'Fetch failed'} at ${candidate}`;
+    }
+  }
+
+  throw new Error(lastError);
 }
 
 function normalizeBookPath(path) {
