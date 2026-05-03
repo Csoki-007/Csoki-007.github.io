@@ -2141,6 +2141,7 @@ function revealLine(i) {
     refreshSrcLine(i);
     refreshTgtLine(i);
     updateBottomBar(i);
+    unlockNextLineAfterReveal(i);
     saveProgress();
   }
 }
@@ -2171,6 +2172,16 @@ function persistCurrentDraft() {
 
 function getReferenceTranslation(i) {
   return getPracticeDirection(i)?.expectedText || '';
+}
+
+function unlockNextLineAfterReveal(i) {
+  if (i !== S.unlocked) return;
+  if (!S.revealed[i]) return;
+  if (!S.translations[i]) return;
+  if (S.unlocked >= S.lines.length - 1) return;
+  S.unlocked += 1;
+  renderBook();
+  saveProgress();
 }
 
 function unlockNextLineAfterCheck(i, result) {
@@ -2554,6 +2565,7 @@ async function fetchTranslation(i, options = {}) {
       q('#deepl-comp').textContent = translation;
     }
     if (options.keepSelection && S.current === i) updateBottomBar(i);
+    if (options.revealWhenDone) unlockNextLineAfterReveal(i);
   } catch (err) {
     refreshTgtLine(i);
     toast('Translation error: ' + err.message, 'err');
