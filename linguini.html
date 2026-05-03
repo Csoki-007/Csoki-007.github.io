@@ -1593,7 +1593,7 @@ async function loadSampleBook(path) {
 }
 
 async function fetchSampleBookText(path) {
-  const normalizedPath = normalizeBookPath(path);
+  const normalizedPath = String(path || '').replace(/\\/g, '/');
   const candidates = [
     normalizedPath,
     `./${normalizedPath}`,
