@@ -2155,13 +2155,22 @@ function scheduleCheckButtonRefresh() {
 
 function scoreTranslation(userText, referenceText) {
   if (!referenceText) {
-    return { score: 0, message: 'Reference translation is not ready yet.' };
+    return { score: 0, message: 'Reference translation is not ready yet.', exact: false };
+  }
+
+  const exactEnough = normalizeForComparison(userText) === normalizeForComparison(referenceText);
+  if (exactEnough) {
+    return {
+      score: 100,
+      message: 'Excellent. Your translation matches the expected answer.',
+      exact: true
+    };
   }
 
   const userWords = tokenizeForScore(userText);
   const refWords = tokenizeForScore(referenceText);
   if (!userWords.length || !refWords.length) {
-    return { score: 0, message: 'Type a fuller answer to get useful feedback.' };
+    return { score: 0, message: 'Type a fuller answer to get useful feedback.', exact: false };
   }
 
   const overlap = userWords.filter(word => refWords.includes(word)).length;
@@ -2176,7 +2185,7 @@ function scoreTranslation(userText, referenceText) {
   else if (score >= 40) message = 'Partly correct. Revisit the main meaning and key vocabulary.';
   else message = 'This differs a lot from the reference. Start with the core meaning first.';
 
-  return { score, message };
+  return { score, message, exact: false };
 }
 
 function shouldUseAiEvaluation(original, reference, userText, fallback) {
@@ -2633,7 +2642,7 @@ function renderEvaluationFeedback(result, isFallback) {
   if (result?.keyIssues) blocks.push(makeFeedbackCard('Key Issues', result.keyIssues));
   if (result?.correctedTranslation) blocks.push(makeFeedbackCard('Corrected', result.correctedTranslation));
   if (result?.betterAlternative) blocks.push(makeFeedbackCard('Better Alternative', result.betterAlternative));
-  if (isFallback && !result?.keyIssues && !result?.correctedTranslation && !result?.betterAlternative) {
+  if (isFallback && score < 100 && !result?.keyIssues && !result?.correctedTranslation && !result?.betterAlternative) {
     blocks.push(makeFeedbackCard('Status', 'Detailed AI evaluation is not available yet.'));
   }
 
