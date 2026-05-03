@@ -2622,45 +2622,77 @@ async function callDeepLProxyTranslation(text, fromLang, toLang, context = '') {
 }
 
 async function callEvaluationProxy(payload) {
-  if (!S.proxyUrl) throw new Error('Evaluation proxy URL is not configured.');
+  const evalUrl = getEvaluationProxyUrl();
+  if (!evalUrl) throw new Error('Evaluation proxy URL is not configured.');
+  const runAction = async action => {
+    const res = await fetch(evalUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        ...payload
+      })
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (_) {}
+
+    if (AI_DEBUG) {
+      console.groupCollapsed(`[Linguini AI] ${action} response`);
+      console.log('status', res.status);
+      console.log('ok', res.ok);
+      console.log('body', data);
+      console.groupEnd();
+    }
+
+    return { res, data };
+  };
+
   if (AI_DEBUG) {
     console.groupCollapsed('[Linguini AI] evaluate request');
-    console.log('proxyUrl', S.proxyUrl);
+    console.log('proxyUrl', evalUrl);
     console.log('payload', payload);
     console.groupEnd();
   }
-  const res = await fetch(S.proxyUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'debug_evaluate',
-      ...payload
-    })
-  });
+  const primary = await runAction('debug_evaluate');
+  if (primary.res.ok && primary.data?.ok && primary.data?.stage === 'done' && typeof primary.data?.result?.score === 'number') {
+    if (AI_DEBUG) console.log('[Linguini AI] proxy normalized result', primary.data.result);
+    return primary.data.result;
+  }
 
-  let data = null;
+  const openaiFallback = await runAction('debug_openai');
+  const parsedFallback = extractEvaluationFromDebugOpenAI(openaiFallback.data);
+  if (parsedFallback) {
+    if (AI_DEBUG) console.log('[Linguini AI] parsed debug_openai fallback', parsedFallback);
+    return parsedFallback;
+  }
+
+  throw new Error(
+    primary.data?.error ||
+    openaiFallback.data?.error ||
+    primary.data?.error_message ||
+    openaiFallback.data?.error_message ||
+    primary.data?.error_code ||
+    openaiFallback.data?.error_code ||
+    `Evaluation HTTP ${primary.res.status}`
+  );
+}
+
+function extractEvaluationFromDebugOpenAI(data) {
   try {
-    data = await res.json();
-  } catch (_) {}
-
-  if (AI_DEBUG) {
-    console.groupCollapsed('[Linguini AI] evaluate response');
-    console.log('status', res.status);
-    console.log('ok', res.ok);
-    console.log('body', data);
-    console.groupEnd();
+    const raw = data?.body_preview;
+    if (!raw || typeof raw !== 'string') return null;
+    const parsed = JSON.parse(raw);
+    const outputText = parsed?.output_text
+      || parsed?.output?.flatMap(item => item?.content || []).find(part => part?.type === 'output_text')?.text;
+    if (!outputText || typeof outputText !== 'string') return null;
+    const evaluation = JSON.parse(outputText);
+    return typeof evaluation?.score === 'number' ? evaluation : null;
+  } catch (_) {
+    return null;
   }
-
-  if (!res.ok) {
-    throw new Error(data?.error || data?.error_message || data?.error_code || `Evaluation HTTP ${res.status}`);
-  }
-
-  if (data?.ok && data?.stage === 'done' && typeof data?.result?.score === 'number') {
-    if (AI_DEBUG) console.log('[Linguini AI] proxy normalized result', data.result);
-    return data.result;
-  }
-
-  throw new Error(data?.error || 'Evaluation proxy did not return a valid result.');
 }
 
 async function callWordLookupProxy(word, fromLang, toLang) {
@@ -3249,6 +3281,11 @@ function recordAzureTtsUsage(text) {
 function getTtsProxyUrl() {
   if (!S.proxyUrl) return '';
   return S.proxyUrl.replace(/\/translate2?$/, '/tts');
+}
+
+function getEvaluationProxyUrl() {
+  if (!S.proxyUrl) return '';
+  return S.proxyUrl.replace(/\/translate2?$/, '/evaluate');
 }
 
 function speakWithBrowserVoice() {
