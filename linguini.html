@@ -2622,29 +2622,42 @@ async function callDeepLProxyTranslation(text, fromLang, toLang, context = '') {
 async function callEvaluationProxy(payload) {
   if (!S.proxyUrl) throw new Error('Evaluation proxy URL is not configured.');
 
-  const res = await fetch(S.proxyUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'evaluate',
-      ...payload
-    })
-  });
+  const runAction = async action => {
+    const res = await fetch(S.proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        ...payload
+      })
+    });
 
-  let data = null;
-  try {
-    data = await res.json();
-  } catch (_) {}
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (_) {}
 
-  if (!res.ok) {
-    throw new Error(data?.error || data?.error_message || data?.error_code || `Evaluation HTTP ${res.status}`);
+    return { res, data };
+  };
+
+  const primary = await runAction('evaluate');
+  if (primary.res.ok && primary.data && typeof primary.data.score === 'number') {
+    return primary.data;
   }
 
-  if (!data || typeof data.score !== 'number') {
-    throw new Error('Evaluation proxy did not return a valid result.');
+  const debugFallback = await runAction('debug_evaluate');
+  if (debugFallback.res.ok && debugFallback.data?.ok && debugFallback.data?.stage === 'done' && typeof debugFallback.data?.result?.score === 'number') {
+    console.warn('Evaluation fallbacked through debug_evaluate for payload:', payload);
+    return debugFallback.data.result;
   }
 
-  return data;
+  throw new Error(
+    primary.data?.error ||
+    primary.data?.error_message ||
+    primary.data?.error_code ||
+    debugFallback.data?.error ||
+    `Evaluation HTTP ${primary.res.status}`
+  );
 }
 
 async function callWordLookupProxy(word, fromLang, toLang) {
